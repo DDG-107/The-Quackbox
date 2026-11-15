@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Crowd Tug-of-War</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">Every pull counts, nobody owns the rope</p>
+          <h1>Crowd Tug-of-War</h1>
+        </div>
+        <div class="clock"><span id="clock">30</span>s</div>
+      </header>
+
+      <section class="teams">
+        <div class="team blue">
+          <strong id="blue-count">0</strong>
+          <span>blue side</span>
+          <em><span id="blue-pulls">0</span> pulls</em>
+        </div>
+        <div class="team red">
+          <strong id="red-count">0</strong>
+          <span>red side</span>
+          <em><span id="red-pulls">0</span> pulls</em>
+        </div>
+      </section>
+
+      <section class="rope" id="rope">
+        <div class="centre"></div>
+        <div class="marker" id="marker"></div>
+      </section>
+
+      <footer id="status">Pull with your phone</footer>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

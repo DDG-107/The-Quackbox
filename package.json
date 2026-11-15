@@ -17,6 +17,7 @@
     "start": "corepack pnpm --filter @quackbox/launcher start",
     "typecheck": "corepack pnpm -r typecheck",
     "lint": "eslint .",
+    "create-game": "tsx packages/create-game/src/index.ts",
     "license-check": "tsx tools/license-check/src/index.ts",
     "check": "corepack pnpm typecheck && corepack pnpm lint && corepack pnpm license-check",
     "sim": "tsx scripts/sim.ts"

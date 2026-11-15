@@ -17,6 +17,15 @@ games/my-game/
 Folders that start with `_` (for example `_template`) are ignored by discovery and
 by `license-check`.
 
+## Starter games
+
+| Cartridge | Shows off |
+|---|---|
+| `tap-race` | buttons at 100 players, a top-ten board instead of 100 avatars |
+| `draw-and-vote` | drawpad, gallery, choice voting, `hub.end(results)` |
+| `tug-of-war` | crowd-as-one-actor input, teams, a shared rope |
+| `_template` | the smallest working cartridge; copied by `pnpm create-game` |
+
 ## Using the SDK
 
 The hub serves the cartridge API at `/sdk/index.js`, so a host page needs no build step:

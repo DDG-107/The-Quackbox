@@ -15,8 +15,9 @@ to get wrong.
 - Player identity is the reconnect token, never the socket.
 - Never call `pnpm license-check` optional: cartridges need a `manifest.json` and an
   `ASSETS.md` listing `- path | license | source URL` for every asset.
-- Current state: Phases 0–3. Launcher, lobby, QR, cartridge loader, SDK bridge and
-  controller components exist; starter games and `create-game` do not.
+- Current state: Phases 0–4. Launcher, lobby, QR, cartridge loader, SDK bridge,
+  controller components, three starter cartridges and the `create-game` scaffolder
+  exist; Phase 5 hardening is next.
 - Cartridges import `/sdk/index.js` (built from `packages/sdk`). Keep `defineGame`,
   `ui.*` and `HubContext` compatible. `hub.setUI` takes `"all"`, a player id or
   `{ team }`; the SDK maps that to the wire target and the main process validates it.

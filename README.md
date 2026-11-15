@@ -3,9 +3,10 @@
 A LAN party platform. The host app runs the game on the big screen; everyone else's
 phone becomes a controller. No internet, no accounts, no installs on the phones.
 
-**Status: Phases 0–3 complete.** The Electron launcher, lobby, QR join flow,
-cartridge loader, the `@quackbox/sdk` bridge and the controller components work.
-The starter games are next.
+**Status: Phases 0–4 complete.** The Electron launcher, lobby, QR join flow,
+cartridge loader, the `@quackbox/sdk` bridge, the controller components and three
+starter cartridges (Tap Race, Draw and Vote, Crowd Tug-of-War) work. `pnpm create-game`
+starts a new cartridge from `games/_template`.
 
 ## Quickstart
 
@@ -41,7 +42,8 @@ corepack pnpm dev:controller   # Vite on :5173, proxies /ws and /health to :4321
 | `pnpm lint` | ESLint over the whole repo |
 | `pnpm license-check` | Cartridge manifests + `ASSETS.md` guardrail |
 | `pnpm check` | typecheck + lint + license-check |
-| `pnpm sim --players 100` | Headless bots: join, send input, drop and resume slots |
+| `pnpm create-game my-game` | Copy `games/_template` to `games/my-game` and rename it |
+| `pnpm sim --players 100 --tap 200` | Headless bots: join, tap (or `--draw`), drop and resume slots |
 
 `pnpm` here means `corepack pnpm` unless you have pnpm installed globally.
 
@@ -55,8 +57,9 @@ apps/launcher/src/shared/    IPC types shared by main, preload and renderer
 apps/controller/             the phone PWA (vanilla TS) and its components
 packages/protocol/           zod schemas + types shared by hub, controller and games
 packages/sdk/                cartridge API, served to games at /sdk/index.js
+packages/create-game/        the `pnpm create-game` scaffolder
 tools/license-check/         CI guardrail for cartridge assets
-games/                       cartridges; see games/README.md
+games/                       the three starter cartridges, `_template`, see games/README.md
 scripts/sim.ts               simulated phones for load and reconnect tests
 ```
 
@@ -132,7 +135,8 @@ Configuration lives in `apps/launcher/src/server/config.ts` and can be overridde
   with live roster / kick / rename, cartridge discovery and sandboxed iframe loader
 - ✅ **Phase 3** — `@quackbox/sdk` (`defineGame`, `ui`, `HubContext`), `postMessage`
   bridge, and the buttons / text / choice / joystick / drawpad / waiting components
-- ⬜ **Phase 4** — `_template` cartridge, `create-game`, three starter games, load test
+- ✅ **Phase 4** — `_template` cartridge, `create-game` scaffolder, Tap Race,
+  Draw and Vote, Crowd Tug-of-War, and a 100-bot load test (`pnpm sim ... --tap`)
 - ⬜ **Phase 5** — firewall/AP-isolation screens, crash boundaries, rate limits
 - ⬜ **Phase 6** — `electron-builder` releases, CI build matrix, docs
 

@@ -1,0 +1,14 @@
+{
+  "id": "draw-and-vote",
+  "name": "Draw and Vote",
+  "version": "0.1.0",
+  "sdk": "^1",
+  "players": { "min": 2, "max": 100, "recommended": [4, 100] },
+  "entry": "host/index.html",
+  "controllers": ["drawpad", "choice"],
+  "needs": [],
+  "reconnect": "skip",
+  "lateJoin": true,
+  "license": "MIT",
+  "tags": ["drawing", "voting", "100-players"]
+}

@@ -11,10 +11,10 @@ screen, phones join over local Wi-Fi with a server-hosted web controller. Games
 Tech: TypeScript everywhere, pnpm workspaces, Fastify + `ws` for the LAN server,
 vanilla TS for the controller, zod for every wire boundary.
 
-Current state: Phases 0–3 are done. The launcher, lobby, QR flow, cartridge
-discovery/loader, the `@quackbox/sdk` bridge and the controller components work. There
-is no starter game and no `create-game` scaffolder yet — do not pretend otherwise in
-docs or UI.
+Current state: Phases 0–4 are done. The launcher, lobby, QR flow, cartridge
+discovery/loader, the `@quackbox/sdk` bridge, the controller components, three starter
+cartridges (`tap-race`, `draw-and-vote`, `tug-of-war`) and the `create-game` scaffolder
+work. Phase 5 (hardening) is next.
 
 ## Commands
 
@@ -28,7 +28,9 @@ corepack pnpm typecheck        # tsc --noEmit in every package
 corepack pnpm lint
 corepack pnpm license-check
 corepack pnpm check            # all three checks
-corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
+corepack pnpm create-game my-game          # new cartridge from games/_template
+corepack pnpm sim --players 20 --drop 3    # headless bots + reconnect test
+corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
 ```
 
 `pnpm` may not be on PATH; `corepack pnpm` always works.
@@ -51,6 +53,10 @@ corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
   drawpad, label, waiting).
 - `packages/sdk/` — the cartridge API, bundled to `packages/sdk/dist/index.js` and
   served at `/sdk/index.js`. This is the only channel a cartridge has to the hub.
+- `packages/create-game/` — the scaffolder behind `pnpm create-game`; copies
+  `games/_template` and rewrites the id and name.
+- `games/` — three starter cartridges plus `_template` (folders starting with `_` are
+  skipped by discovery and `license-check`).
 - `tools/license-check/` — cartridge manifest + asset license guardrail.
 
 ## Rules
@@ -98,5 +104,5 @@ corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
 ## Roadmap (do not skip ahead)
 
 Phase 2 Electron shell + lobby + cartridge discovery → Phase 3 SDK and controller
-components → Phase 4 starter games and load tests → Phase 5 hardening → Phase 6
-packaging and CI.
+components → Phase 4 starter games and load tests (done) → Phase 5 hardening →
+Phase 6 packaging and CI.
