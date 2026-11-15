@@ -3,8 +3,9 @@
 A LAN party platform. The host app runs the game on the big screen; everyone else's
 phone becomes a controller. No internet, no accounts, no installs on the phones.
 
-**Status: Phases 0–2 complete.** The Electron launcher, lobby, QR join flow and
-cartridge discovery work. The SDK, controller components and games are next.
+**Status: Phases 0–3 complete.** The Electron launcher, lobby, QR join flow,
+cartridge loader, the `@quackbox/sdk` bridge and the controller components work.
+The starter games are next.
 
 ## Quickstart
 
@@ -34,7 +35,7 @@ corepack pnpm dev:controller   # Vite on :5173, proxies /ws and /health to :4321
 | `pnpm dev` | Build everything and open the Electron launcher |
 | `pnpm dev:hub` | Headless hub with file watching and a console roster |
 | `pnpm dev:controller` | Vite dev server for the phone controller |
-| `pnpm build` | Controller + launcher main/preload + lobby renderer |
+| `pnpm build` | Cartridge SDK + controller + launcher main/preload + lobby renderer |
 | `pnpm start` | Open the launcher using the last build |
 | `pnpm typecheck` | `tsc --noEmit` in every package |
 | `pnpm lint` | ESLint over the whole repo |
@@ -51,8 +52,9 @@ apps/launcher/src/main/      Electron main: window, in-process hub, IPC, QR, dis
 apps/launcher/src/renderer/  Lobby UI (vanilla TS, built by Vite, loaded from file://)
 apps/launcher/src/server/    Fastify + ws hub: rooms, tokens, heartbeat, grace period
 apps/launcher/src/shared/    IPC types shared by main, preload and renderer
-apps/controller/             the phone PWA (vanilla TS)
+apps/controller/             the phone PWA (vanilla TS) and its components
 packages/protocol/           zod schemas + types shared by hub, controller and games
+packages/sdk/                cartridge API, served to games at /sdk/index.js
 tools/license-check/         CI guardrail for cartridge assets
 games/                       cartridges; see games/README.md
 scripts/sim.ts               simulated phones for load and reconnect tests
@@ -77,6 +79,44 @@ scripts/sim.ts               simulated phones for load and reconnect tests
   A dropped player keeps their slot for the 60s grace period.
 - **Reconnect.** The phone reconnects with backoff (0.5s → 5s), also on
   `visibilitychange` and `online`, re-sends its token, and the hub replays its screen.
+- **Bridge.** A cartridge talks to the hub over `postMessage` only: the SDK posts
+  `quackbox:*` messages, the lobby renderer relays them to the main process over IPC,
+  and the main process validates every target and descriptor before touching a room.
+  The frame is `sandbox="allow-scripts"`, so game code never sees Node or the launcher.
+
+## Writing a cartridge
+
+A cartridge is a folder in `games/` with a manifest and a host page. The page imports
+the SDK from the hub itself — no build step, no dependency to install:
+
+```html
+<script type="module">
+  import { defineGame, ui } from "/sdk/index.js";
+
+  defineGame({
+    onStart(hub) {
+      hub.setUI("all", ui.buttons([{ id: "tap", label: "TAP!" }]));
+    },
+    onPlayerJoin(player) {
+      hub.log("joined", player.name);
+    },
+    onInput(player, input) {
+      if (input.k === "press") hub.broadcast("scored", { playerId: player.id });
+    },
+  });
+</script>
+```
+
+- `hub.setUI("all" | playerId | { team }, descriptor)` replaces a phone's controls.
+- `hub.send(playerId, event, data)` / `hub.broadcast(event, data)` push events.
+- `hub.end(results)` finishes the round and returns everyone to the lobby.
+- Lifecycle: `onPlayerJoin`, `onPlayerLeave`, `onPlayerRejoin`, `onPlayerRemoved`,
+  `onStop`.
+
+Controller components available today: `buttons`, `text`, `choice`, `joystick`,
+`drawpad`, `waiting`, `label`. `/games/` and `/sdk/` are served with
+`Access-Control-Allow-Origin: *` because the sandboxed frame has an opaque origin and
+its ES module imports would otherwise be blocked.
 
 Configuration lives in `apps/launcher/src/server/config.ts` and can be overridden with
 `QUACKBOX_PORT`, `QUACKBOX_ROOM`, `QUACKBOX_GRACE_MS`, `QUACKBOX_HEARTBEAT_MS`,
@@ -90,7 +130,8 @@ Configuration lives in `apps/launcher/src/server/config.ts` and can be overridde
   reconnect, grace period), controller PWA, headless console test
 - ✅ **Phase 2** — Electron shell, in-process hub, LAN interface picker, QR code, lobby
   with live roster / kick / rename, cartridge discovery and sandboxed iframe loader
-- ⬜ **Phase 3** — `@quackbox/sdk`, `postMessage` bridge, controller components
+- ✅ **Phase 3** — `@quackbox/sdk` (`defineGame`, `ui`, `HubContext`), `postMessage`
+  bridge, and the buttons / text / choice / joystick / drawpad / waiting components
 - ⬜ **Phase 4** — `_template` cartridge, `create-game`, three starter games, load test
 - ⬜ **Phase 5** — firewall/AP-isolation screens, crash boundaries, rate limits
 - ⬜ **Phase 6** — `electron-builder` releases, CI build matrix, docs

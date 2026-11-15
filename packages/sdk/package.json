@@ -1,0 +1,22 @@
+{
+  "name": "@quackbox/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Authoring API for QuackBox cartridges. Served to games at /sdk/index.js.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@quackbox/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^5.6.0"
+  }
+}

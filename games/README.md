@@ -17,6 +17,29 @@ games/my-game/
 Folders that start with `_` (for example `_template`) are ignored by discovery and
 by `license-check`.
 
+## Using the SDK
+
+The hub serves the cartridge API at `/sdk/index.js`, so a host page needs no build step:
+
+```html
+<script type="module">
+  import { defineGame, ui } from "/sdk/index.js";
+
+  defineGame({
+    onStart(hub) {
+      hub.setUI("all", ui.buttons([{ id: "tap", label: "TAP!" }]));
+    },
+    onInput(player, input) {
+      if (input.k === "press") hub.log(player.name, "tapped");
+    },
+  });
+</script>
+```
+
+Lifecycle hooks: `onStart`, `onPlayerJoin`, `onPlayerLeave`, `onPlayerRejoin`,
+`onPlayerRemoved`, `onInput`, `onStop`. Screens are built with `ui.buttons`, `ui.text`,
+`ui.choice`, `ui.joystick`, `ui.drawpad`, `ui.waiting`, `ui.label` or `ui.stack`.
+
 ## ASSETS.md
 
 One line per asset, pipe separated:

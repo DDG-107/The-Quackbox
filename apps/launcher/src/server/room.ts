@@ -7,6 +7,7 @@ import type {
   Player,
   ServerMessage,
   UISpec,
+  UITarget,
 } from "@quackbox/protocol";
 
 const COLORS = [
@@ -37,8 +38,6 @@ export interface RoomHandlers {
   onPlayerRemoved?(player: Player): void;
   onLobbyChange?(room: Room): void;
 }
-
-export type UITarget = "all" | { playerId: string } | { team: string };
 
 export interface PlayerRecord {
   player: Player;

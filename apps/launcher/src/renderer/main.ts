@@ -1,4 +1,5 @@
 import type { GameInfo, LauncherState, QuackboxApi } from "../shared/api.js";
+import type { GameResult, UITarget } from "@quackbox/protocol";
 import "./styles.css";
 
 function requireRoot(): HTMLElement {
@@ -22,6 +23,7 @@ function run(api: QuackboxApi): void {
   let editing: { id: string; value: string } | null = null;
   /** URL currently in the iframe; prevents a roster update from reloading a game. */
   let stagedUrl: string | null = null;
+  let frame: HTMLIFrameElement | null = null;
 
   api.onState((next) => {
     // Do not clobber an open rename field; the state is applied when editing ends.
@@ -39,6 +41,67 @@ function run(api: QuackboxApi): void {
     void api.ready();
   });
 
+  // --- cartridge bridge -----------------------------------------------------
+
+  window.addEventListener("message", (event) => {
+    if (!frame || event.source !== frame.contentWindow) return;
+
+    const data: unknown = event.data;
+    if (typeof data !== "object" || data === null) return;
+    const type = (data as { type?: unknown }).type;
+    if (typeof type !== "string" || !type.startsWith("quackbox:")) return;
+
+    const payload = data as Record<string, unknown>;
+    switch (type) {
+      case "quackbox:ready":
+        sendInit();
+        break;
+      case "quackbox:setUI":
+        void api.setGameUI(payload.target as UITarget, payload.ui as never);
+        break;
+      case "quackbox:send":
+        void api.sendGameEvent(
+          payload.playerId as string,
+          payload.event as string,
+          payload.data,
+        );
+        break;
+      case "quackbox:broadcast":
+        void api.broadcastGameEvent(payload.event as string, payload.data);
+        break;
+      case "quackbox:end":
+        void api.endGame(payload.results as GameResult[]);
+        break;
+      case "quackbox:log":
+        void api.logFromGame(Array.isArray(payload.args) ? payload.args : []);
+        break;
+    }
+  });
+
+  api.onGameInput((player, input) => {
+    postToFrame({ type: "quackbox:input", player, input });
+  });
+
+  api.onPlayerEvent((event) => {
+    postToFrame({ type: "quackbox:player", kind: event.kind, player: event.player });
+  });
+
+  function postToFrame(message: unknown): void {
+    frame?.contentWindow?.postMessage(message, "*");
+  }
+
+  function sendInit(): void {
+    if (!state) return;
+    postToFrame({
+      type: "quackbox:init",
+      gameId: state.selectedGameId,
+      players: state.players,
+      config: {},
+    });
+  }
+
+  // --- rendering ------------------------------------------------------------
+
   function render(): void {
     if (!state) return;
 
@@ -47,9 +110,16 @@ function run(api: QuackboxApi): void {
       return;
     }
 
+    if (frame) {
+      postToFrame({ type: "quackbox:stop" });
+      frame = null;
+    }
+
     stagedUrl = state.gameUrl;
     app.innerHTML = state.gameUrl ? stageView(state) : lobbyView(state);
     bind();
+
+    frame = app.querySelector<HTMLIFrameElement>("#game");
 
     if (editing) {
       const input = app.querySelector<HTMLInputElement>(".rename-input");
@@ -200,12 +270,13 @@ function run(api: QuackboxApi): void {
           <button id="back" class="ghost">Back to lobby</button>
         </header>
         <iframe
+          id="game"
           class="game-frame"
           title="${escapeHtml(game?.name ?? "Cartridge")}"
           src="${escapeHtml(current.gameUrl ?? "")}"
           sandbox="allow-scripts"
         ></iframe>
-        <p class="hint">This cartridge runs in a sandboxed frame; the SDK bridge arrives in Phase 3.</p>
+        <p class="hint">The cartridge talks to the hub only through the QuackBox SDK bridge.</p>
       </div>
     `;
   }

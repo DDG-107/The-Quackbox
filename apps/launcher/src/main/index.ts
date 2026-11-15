@@ -1,11 +1,18 @@
 import { BrowserWindow, app, ipcMain } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  endedMessageSchema,
+  uiSpecSchema,
+  type InputEvent,
+  type Player,
+  type UITarget,
+} from "@quackbox/protocol";
 import { loadConfig, type ServerConfig } from "../server/config.js";
 import { startHubServer, type HubServer } from "../server/http.js";
 import { listLanAddresses } from "../server/lan.js";
 import type { RoomHandlers } from "../server/room.js";
-import type { LauncherState } from "../shared/api.js";
+import type { LauncherState, PlayerEvent } from "../shared/api.js";
 import { discoverGames } from "./games.js";
 import { qrSvg } from "./qr.js";
 
@@ -13,10 +20,12 @@ import { qrSvg } from "./qr.js";
 const appRoot = app.getAppPath();
 const controllerRoot =
   process.env.QUACKBOX_CONTROLLER_DIR ?? join(appRoot, "..", "controller", "dist");
+const sdkRoot = process.env.QUACKBOX_SDK_DIR ?? join(appRoot, "..", "..", "packages", "sdk", "dist");
 const gamesRoot = process.env.QUACKBOX_GAMES_DIR ?? join(appRoot, "..", "..", "games");
 
 const config: ServerConfig = loadConfig({
   controllerDir: controllerRoot,
+  sdkDir: sdkRoot,
   gamesDir: gamesRoot,
 });
 
@@ -83,8 +92,16 @@ function buildState(): LauncherState {
 }
 
 function broadcast(): void {
+  sendToWindow("launcher:state", buildState());
+}
+
+function sendToWindow(channel: string, payload: unknown): void {
   if (!window || window.isDestroyed()) return;
-  window.webContents.send("launcher:state", buildState());
+  window.webContents.send(channel, payload);
+}
+
+function sendPlayerEvent(kind: PlayerEvent["kind"], player: Player): void {
+  sendToWindow("launcher:player", { kind, player } satisfies PlayerEvent);
 }
 
 function isPortInUse(error: unknown): boolean {
@@ -97,7 +114,15 @@ function isPortInUse(error: unknown): boolean {
 }
 
 async function startHub(): Promise<void> {
-  const handlers: RoomHandlers = { onLobbyChange: () => broadcast() };
+  const handlers: RoomHandlers = {
+    onLobbyChange: () => broadcast(),
+    onInput: (player: Player, input: InputEvent) =>
+      sendToWindow("launcher:game:input", { player, input }),
+    onPlayerJoin: (player) => sendPlayerEvent("join", player),
+    onPlayerRejoin: (player) => sendPlayerEvent("rejoin", player),
+    onPlayerLeave: (player) => sendPlayerEvent("leave", player),
+    onPlayerRemoved: (player) => sendPlayerEvent("removed", player),
+  };
 
   for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset += 1) {
     const port = config.port + offset;
@@ -141,6 +166,29 @@ function createWindow(): void {
   void window.loadFile(fileURLToPath(new URL("../renderer/index.html", import.meta.url)));
 }
 
+function parseTarget(value: unknown): UITarget | null {
+  if (value === "all") return "all";
+  if (typeof value !== "object" || value === null) return null;
+
+  const record = value as { playerId?: unknown; team?: unknown };
+  if (typeof record.playerId === "string" && record.playerId.length <= 64) {
+    return { playerId: record.playerId };
+  }
+  if (typeof record.team === "string" && record.team.length <= 64) {
+    return { team: record.team };
+  }
+  return null;
+}
+
+function formatLogArg(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 function registerIpc(): void {
   ipcMain.handle("launcher:getState", () => buildState());
 
@@ -176,6 +224,56 @@ function registerIpc(): void {
   ipcMain.handle("launcher:refreshGames", async () => {
     await loadGames();
     broadcast();
+  });
+
+  // --- cartridge bridge -----------------------------------------------------
+
+  ipcMain.handle("launcher:game:setUI", (_event, target: unknown, spec: unknown) => {
+    if (!server) return;
+
+    const parsedTarget = parseTarget(target);
+    if (!parsedTarget) {
+      // Cartridges are untrusted input: say what was rejected instead of failing silently.
+      console.warn(`[game] ignored setUI with an invalid target: ${formatLogArg(target)}`);
+      return;
+    }
+
+    const parsedSpec = uiSpecSchema.safeParse(spec);
+    if (!parsedSpec.success) {
+      console.warn(`[game] ignored setUI with an invalid descriptor: ${parsedSpec.error.message}`);
+      return;
+    }
+
+    server.hub.defaultRoom.setUI(parsedTarget, parsedSpec.data);
+  });
+
+  ipcMain.handle(
+    "launcher:game:send",
+    (_event, playerId: unknown, event: unknown, data: unknown) => {
+      if (!server || typeof playerId !== "string" || typeof event !== "string") return;
+      if (event.length === 0 || event.length > 64) return;
+      server.hub.defaultRoom.sendEvent(playerId, event, data);
+    },
+  );
+
+  ipcMain.handle("launcher:game:broadcast", (_event, event: unknown, data: unknown) => {
+    if (!server || typeof event !== "string") return;
+    if (event.length === 0 || event.length > 64) return;
+    server.hub.defaultRoom.broadcastEvent(event, data);
+  });
+
+  ipcMain.handle("launcher:game:end", (_event, results: unknown) => {
+    if (!server) return;
+    const parsed = endedMessageSchema.shape.results.safeParse(results);
+    if (!parsed.success) return;
+    server.hub.defaultRoom.end(parsed.data);
+    selectedGameId = null;
+    broadcast();
+  });
+
+  ipcMain.handle("launcher:game:log", (_event, args: unknown) => {
+    if (!Array.isArray(args)) return;
+    console.log(`[game] ${args.slice(0, 12).map(formatLogArg).join(" ")}`);
   });
 }
 

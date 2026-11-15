@@ -17,6 +17,8 @@ export interface ServerConfig {
   maxPayloadBytes: number;
   /** Built phone controller, served at `/`. */
   controllerDir: string;
+  /** Built cartridge SDK, served at `/sdk/`. */
+  sdkDir: string;
   /** Cartridge root, served at `/games/`. */
   gamesDir: string;
 }
@@ -36,7 +38,7 @@ export function normalizeRoomCode(raw: string | undefined, fallback = "ABCD"): s
 /**
  * Defaults are resolved relative to this source file, which is what the
  * headless runner uses. The Electron main runs bundled, so it passes explicit
- * paths for `controllerDir` and `gamesDir`.
+ * paths for `controllerDir`, `sdkDir` and `gamesDir`.
  */
 export function loadConfig(overrides: Partial<ServerConfig> = {}): ServerConfig {
   const defaults: ServerConfig = {
@@ -49,6 +51,8 @@ export function loadConfig(overrides: Partial<ServerConfig> = {}): ServerConfig 
     maxPayloadBytes: envInt("QUACKBOX_MAX_PAYLOAD", 16 * 1024),
     // apps/launcher/src/server/ -> apps/controller/dist
     controllerDir: fileURLToPath(new URL("../../../controller/dist/", import.meta.url)),
+    // apps/launcher/src/server/ -> packages/sdk/dist
+    sdkDir: fileURLToPath(new URL("../../../../packages/sdk/dist/", import.meta.url)),
     // apps/launcher/src/server/ -> <repo>/games
     gamesDir: fileURLToPath(new URL("../../../../games/", import.meta.url)),
   };

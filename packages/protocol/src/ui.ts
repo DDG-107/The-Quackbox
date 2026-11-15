@@ -113,4 +113,8 @@ export const controllerUISchema = z.object({
 export type ControllerUI = z.infer<typeof controllerUISchema>;
 
 /** A UI descriptor as authored by a game: the hub stamps `v`. */
-export type UISpec = Omit<ControllerUI, "v">;
+export const uiSpecSchema = controllerUISchema.omit({ v: true });
+export type UISpec = z.infer<typeof uiSpecSchema>;
+
+/** Who receives a UI descriptor. */
+export type UITarget = "all" | { playerId: string } | { team: string };

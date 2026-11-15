@@ -11,9 +11,10 @@ screen, phones join over local Wi-Fi with a server-hosted web controller. Games
 Tech: TypeScript everywhere, pnpm workspaces, Fastify + `ws` for the LAN server,
 vanilla TS for the controller, zod for every wire boundary.
 
-Current state: Phases 0–2 are done. The Electron launcher, lobby, QR join flow and
-cartridge discovery/loader work. There is no SDK, no `postMessage` bridge and no game
-yet — do not pretend otherwise in docs or UI.
+Current state: Phases 0–3 are done. The launcher, lobby, QR flow, cartridge
+discovery/loader, the `@quackbox/sdk` bridge and the controller components work. There
+is no starter game and no `create-game` scaffolder yet — do not pretend otherwise in
+docs or UI.
 
 ## Commands
 
@@ -45,8 +46,11 @@ corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
   says and never touches Node or the filesystem.
 - `apps/launcher/src/shared/api.ts` — the IPC surface, imported by main, preload and
   renderer so all three agree.
-- `apps/controller/src/` — `net.ts` (connection, backoff, token) and `main.ts`
-  (renders the `ControllerUI` descriptor).
+- `apps/controller/src/` — `net.ts` (connection, backoff, token), `main.ts` (the room
+  shell and stage mounting) and `components/` (buttons, text, choice, joystick,
+  drawpad, label, waiting).
+- `packages/sdk/` — the cartridge API, bundled to `packages/sdk/dist/index.js` and
+  served at `/sdk/index.js`. This is the only channel a cartridge has to the hub.
 - `tools/license-check/` — cartridge manifest + asset license guardrail.
 
 ## Rules
@@ -58,7 +62,9 @@ corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
    messages. If a feature needs a socket, add a room method.
 3. **The phone is dumb.** Games send a declarative `ControllerUI` descriptor, never
    game state, never HTML. New components go in `packages/protocol/src/ui.ts` first,
-   then the controller renders them.
+   then the controller renders them in `apps/controller/src/components/`.
+   `hub.setUI` takes `"all"`, a player id or `{ team }`; the SDK converts that to the
+   wire target, and only the main process may apply it to a room.
 4. **Player identity is the token.** The token, not the socket, owns the slot, score
    and team. Anything keyed by socket breaks reconnects.
 5. **Versioned screens.** `Room.setUI` stamps `v`; the client drops stale descriptors.
@@ -68,6 +74,11 @@ corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
    Never expose raw `fs` or `ipcRenderer` through the preload bridge.
 7. **Cartridges are untrusted.** They run in `sandbox="allow-scripts"` iframes served
    from `/games/`. Do not add `allow-same-origin`, and do not pass host privileges in.
+   The bridge is `postMessage` → lobby renderer → IPC → main, and the main process
+   re-validates every target and descriptor with zod before it reaches a room. Never
+   move that validation into the renderer or the cartridge.
+8. **Changing a real cartridge API is a breaking change.** `defineGame`, `ui.*` and
+   `HubContext` are what every game is written against; add, don't rename.
 6. **Scale target is 100 phones.** Inputs at 10–20Hz for analog, event-only for
    buttons, nothing when idle. No full-state broadcasts to phones; aggregate crowds
    on the host screen. Keep `perMessageDeflate` off and `maxPayload` small.

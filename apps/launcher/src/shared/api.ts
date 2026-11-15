@@ -1,4 +1,13 @@
-import type { GameManifest, Player } from "@quackbox/protocol";
+import type {
+  GameManifest,
+  GameResult,
+  InputEvent,
+  Player,
+  UISpec,
+  UITarget,
+} from "@quackbox/protocol";
+
+export type { GameResult, InputEvent, Player, UISpec, UITarget };
 
 export interface LanOption {
   iface: string;
@@ -36,6 +45,13 @@ export interface LauncherState {
   startupError: string | null;
 }
 
+export type PlayerEventKind = "join" | "rejoin" | "leave" | "removed";
+
+export interface PlayerEvent {
+  kind: PlayerEventKind;
+  player: Player;
+}
+
 /** The surface exposed to the renderer through the preload bridge. */
 export interface QuackboxApi {
   getState(): Promise<LauncherState>;
@@ -46,4 +62,15 @@ export interface QuackboxApi {
   refreshGames(): Promise<void>;
   ready(): Promise<void>;
   onState(callback: (state: LauncherState) => void): () => void;
+
+  // Requests from the cartridge, relayed by the lobby renderer.
+  setGameUI(target: UITarget, ui: UISpec): Promise<void>;
+  sendGameEvent(playerId: string, event: string, data?: unknown): Promise<void>;
+  broadcastGameEvent(event: string, data?: unknown): Promise<void>;
+  endGame(results: GameResult[]): Promise<void>;
+  logFromGame(args: unknown[]): Promise<void>;
+
+  // Room activity the cartridge needs to see.
+  onGameInput(callback: (player: Player, input: InputEvent) => void): () => void;
+  onPlayerEvent(callback: (event: PlayerEvent) => void): () => void;
 }

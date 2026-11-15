@@ -20,7 +20,15 @@ export interface StartOptions {
   handlers?: RoomHandlers;
 }
 
-/** HTTP (controller, cartridges, health) and the WebSocket protocol, on one port. */
+/**
+ * Cartridges and the SDK are public LAN assets loaded by an opaque-origin frame
+ * (`sandbox="allow-scripts"`), so their ES module imports need CORS.
+ */
+function allowAnyOrigin(response: { setHeader(name: string, value: string): void }): void {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+}
+
+/** HTTP (controller, cartridges, SDK, health) and WebSocket, on one port. */
 export async function startHubServer(
   config: ServerConfig,
   options: StartOptions = {},
@@ -51,6 +59,17 @@ export async function startHubServer(
       prefix: "/games/",
       index: ["index.html"],
       decorateReply: false,
+      setHeaders: allowAnyOrigin,
+    });
+  }
+
+  if (existsSync(config.sdkDir)) {
+    await app.register(fastifyStatic, {
+      root: config.sdkDir,
+      prefix: "/sdk/",
+      index: ["index.js"],
+      decorateReply: false,
+      setHeaders: allowAnyOrigin,
     });
   }
 

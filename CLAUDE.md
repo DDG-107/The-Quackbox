@@ -15,8 +15,11 @@ to get wrong.
 - Player identity is the reconnect token, never the socket.
 - Never call `pnpm license-check` optional: cartridges need a `manifest.json` and an
   `ASSETS.md` listing `- path | license | source URL` for every asset.
-- Current state: Phases 0–2. Electron launcher, lobby, QR and cartridge discovery
-  exist; the SDK, `postMessage` bridge and games do not yet.
+- Current state: Phases 0–3. Launcher, lobby, QR, cartridge loader, SDK bridge and
+  controller components exist; starter games and `create-game` do not.
+- Cartridges import `/sdk/index.js` (built from `packages/sdk`). Keep `defineGame`,
+  `ui.*` and `HubContext` compatible. `hub.setUI` takes `"all"`, a player id or
+  `{ team }`; the SDK maps that to the wire target and the main process validates it.
 - Electron: main process owns the hub and the window; the lobby is a sandboxed
   renderer that talks only through `window.quackbox` (preload). Validate every IPC
   argument in `ipcMain.handle`. Cartridges load in `sandbox="allow-scripts"` iframes.
