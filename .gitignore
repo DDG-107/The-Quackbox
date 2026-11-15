@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+.dev-hub.log
+.dev-hub.pid
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+release/

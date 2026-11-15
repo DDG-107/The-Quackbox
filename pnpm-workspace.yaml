@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tools/*"
+
+# pnpm 11+ blocks dependency lifecycle scripts unless approved here.
+# esbuild (via tsx and vite) needs its postinstall to pick the platform binary.
+allowBuilds:
+  esbuild: true

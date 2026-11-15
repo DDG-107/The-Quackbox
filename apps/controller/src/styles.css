@@ -1,0 +1,259 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0b12;
+  --panel: #16161f;
+  --panel-soft: #1d1d2a;
+  --text: #f4f4fb;
+  --muted: #9a9ab0;
+  --accent: #ffd23f;
+  --warn: #ff8f3f;
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: radial-gradient(120% 90% at 50% 0%, #1a1a29 0%, var(--bg) 60%);
+  color: var(--text);
+  font: 16px/1.5 ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: calc(env(safe-area-inset-top) + 1rem) 1rem calc(env(safe-area-inset-bottom) + 1rem);
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid #262635;
+  border-radius: var(--radius);
+  padding: 1.4rem 1.2rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0 0 0.4rem;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+form {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1.2rem;
+}
+
+label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+input {
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid #33334a;
+  background: var(--panel-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.05rem;
+}
+
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+#room {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-weight: 700;
+}
+
+button {
+  margin-top: 0.6rem;
+  padding: 1rem;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #101018;
+  background: var(--accent);
+  min-height: 3.2rem;
+}
+
+button:disabled {
+  opacity: 0.55;
+}
+
+.notice {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  background: #2a1a1a;
+  border: 1px solid #5a2a2a;
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0 0.25rem;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--panel);
+  border: 1px solid #262635;
+  border-radius: var(--radius);
+}
+
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room {
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  font-size: 0.85rem;
+}
+
+.swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 999px;
+  flex: none;
+  display: inline-block;
+}
+
+.pill {
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pill.warn {
+  background: #2a2214;
+  border: 1px solid #5c4520;
+  color: var(--warn);
+}
+
+.stage {
+  flex: 1;
+  display: grid;
+  gap: 0.75rem;
+  align-content: center;
+  min-height: 12rem;
+  background: var(--panel);
+  border: 1px solid #262635;
+  border-radius: var(--radius);
+  padding: 1.4rem 1.2rem;
+  text-align: center;
+}
+
+.waiting {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  color: var(--muted);
+}
+
+.waiting strong {
+  color: var(--text);
+  font-size: 1.25rem;
+}
+
+.label {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.pending {
+  color: var(--muted);
+  font-size: 0.85rem;
+  border: 1px dashed #3a3a52;
+  border-radius: 12px;
+  padding: 0.9rem;
+}
+
+.roster {
+  background: var(--panel);
+  border: 1px solid #262635;
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+
+.roster ul {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+}
+
+.roster li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+}
+
+.roster li.you {
+  color: var(--text);
+  font-weight: 700;
+}

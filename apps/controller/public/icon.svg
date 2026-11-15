@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="The QuackBox">
+  <rect width="192" height="192" rx="42" fill="#0b0b12" />
+  <rect x="34" y="52" width="124" height="88" rx="18" fill="none" stroke="#ffd23f" stroke-width="10" />
+  <circle cx="70" cy="86" r="9" fill="#ffd23f" />
+  <path d="M60 110h28" stroke="#36d1ff" stroke-width="10" stroke-linecap="round" />
+  <path d="M112 96l22 12-22 12z" fill="#ff5c8a" />
+</svg>
