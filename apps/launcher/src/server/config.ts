@@ -15,8 +15,10 @@ export interface ServerConfig {
   dropAfterMs: number;
   /** Frame size cap; phones only ever send tiny input messages. */
   maxPayloadBytes: number;
-  /** Built controller files, served over HTTP. */
+  /** Built phone controller, served at `/`. */
   controllerDir: string;
+  /** Cartridge root, served at `/games/`. */
+  gamesDir: string;
 }
 
 function envInt(name: string, fallback: number): number {
@@ -31,8 +33,13 @@ export function normalizeRoomCode(raw: string | undefined, fallback = "ABCD"): s
   return code.length === 4 ? code : fallback;
 }
 
-export function loadConfig(): ServerConfig {
-  return {
+/**
+ * Defaults are resolved relative to this source file, which is what the
+ * headless runner uses. The Electron main runs bundled, so it passes explicit
+ * paths for `controllerDir` and `gamesDir`.
+ */
+export function loadConfig(overrides: Partial<ServerConfig> = {}): ServerConfig {
+  const defaults: ServerConfig = {
     port: envInt("QUACKBOX_PORT", 4321),
     host: process.env.QUACKBOX_HOST ?? "0.0.0.0",
     roomCode: normalizeRoomCode(process.env.QUACKBOX_ROOM),
@@ -42,5 +49,9 @@ export function loadConfig(): ServerConfig {
     maxPayloadBytes: envInt("QUACKBOX_MAX_PAYLOAD", 16 * 1024),
     // apps/launcher/src/server/ -> apps/controller/dist
     controllerDir: fileURLToPath(new URL("../../../controller/dist/", import.meta.url)),
+    // apps/launcher/src/server/ -> <repo>/games
+    gamesDir: fileURLToPath(new URL("../../../../games/", import.meta.url)),
   };
+
+  return { ...defaults, ...overrides };
 }

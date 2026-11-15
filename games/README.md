@@ -1,8 +1,8 @@
 # Cartridges
 
-A cartridge is one folder here. The hub scans `games/*/manifest.json` and serves
-`host/index.html` in a sandboxed iframe (Phase 2+). Nothing else in the repo needs
-to change to add a game.
+A cartridge is one folder here. The launcher scans `games/*/manifest.json`, shows a
+card for each one, and loads `host/index.html` in a sandboxed iframe served from
+`/games/<id>/`. Nothing else in the repo needs to change to add a game.
 
 ```
 games/my-game/

@@ -9,9 +9,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev:hub": "corepack pnpm --filter @quackbox/launcher dev",
+    "dev": "corepack pnpm --filter @quackbox/launcher dev",
+    "dev:launcher": "corepack pnpm --filter @quackbox/launcher dev",
+    "dev:hub": "corepack pnpm --filter @quackbox/launcher dev:server",
     "dev:controller": "corepack pnpm --filter @quackbox/controller dev",
-    "build": "corepack pnpm --filter @quackbox/controller build",
+    "build": "corepack pnpm --filter @quackbox/controller build && corepack pnpm --filter @quackbox/launcher build",
     "start": "corepack pnpm --filter @quackbox/launcher start",
     "typecheck": "corepack pnpm -r typecheck",
     "lint": "eslint .",

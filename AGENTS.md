@@ -11,15 +11,17 @@ screen, phones join over local Wi-Fi with a server-hosted web controller. Games
 Tech: TypeScript everywhere, pnpm workspaces, Fastify + `ws` for the LAN server,
 vanilla TS for the controller, zod for every wire boundary.
 
-Current state: Phase 0 and Phase 1 are done. There is no Electron shell, no SDK,
-no cartridge loader and no game yet — do not pretend otherwise in docs or UI.
+Current state: Phases 0–2 are done. The Electron launcher, lobby, QR join flow and
+cartridge discovery/loader work. There is no SDK, no `postMessage` bridge and no game
+yet — do not pretend otherwise in docs or UI.
 
 ## Commands
 
 ```bash
 corepack pnpm install
-corepack pnpm build            # controller -> apps/controller/dist
-corepack pnpm dev:hub          # hub on :4321, prints join URLs, live roster
+corepack pnpm build            # controller + launcher main/preload + lobby renderer
+corepack pnpm dev              # build, then open the Electron launcher
+corepack pnpm dev:hub          # headless hub on :4321, prints join URLs, live roster
 corepack pnpm dev:controller   # Vite on :5173, proxies /ws and /health
 corepack pnpm typecheck        # tsc --noEmit in every package
 corepack pnpm lint
@@ -37,6 +39,12 @@ corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
 - `apps/launcher/src/server/` — `hub.ts` (sockets, join dispatch), `room.ts` (player
   slots, tokens, UI replay, grace timers), `http.ts` (Fastify + static controller +
   heartbeat), `config.ts`, `lan.ts`, `standalone.ts` (headless runner).
+- `apps/launcher/src/main/` — Electron main: `index.ts` (window, IPC, port fallback),
+  `games.ts` (manifest discovery), `qr.ts` (SVG QR), `preload.ts` (context bridge).
+- `apps/launcher/src/renderer/` — the lobby UI. It renders only what `LauncherState`
+  says and never touches Node or the filesystem.
+- `apps/launcher/src/shared/api.ts` — the IPC surface, imported by main, preload and
+  renderer so all three agree.
 - `apps/controller/src/` — `net.ts` (connection, backoff, token) and `main.ts`
   (renders the `ControllerUI` descriptor).
 - `tools/license-check/` — cartridge manifest + asset license guardrail.
@@ -55,6 +63,11 @@ corepack pnpm sim --players 20 --drop 3   # headless bots + reconnect test
    and team. Anything keyed by socket breaks reconnects.
 5. **Versioned screens.** `Room.setUI` stamps `v`; the client drops stale descriptors.
    Never render one that is older than the last.
+6. **Every IPC argument is validated in the main process.** The renderer is a web page;
+   `ipcMain.handle` callbacks type-check their inputs (`unknown`), not just Trust them.
+   Never expose raw `fs` or `ipcRenderer` through the preload bridge.
+7. **Cartridges are untrusted.** They run in `sandbox="allow-scripts"` iframes served
+   from `/games/`. Do not add `allow-same-origin`, and do not pass host privileges in.
 6. **Scale target is 100 phones.** Inputs at 10–20Hz for analog, event-only for
    buttons, nothing when idle. No full-state broadcasts to phones; aggregate crowds
    on the host screen. Keep `perMessageDeflate` off and `maxPayload` small.

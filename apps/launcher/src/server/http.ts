@@ -20,7 +20,7 @@ export interface StartOptions {
   handlers?: RoomHandlers;
 }
 
-/** HTTP (controller + health) and the WebSocket protocol, on one port. */
+/** HTTP (controller, cartridges, health) and the WebSocket protocol, on one port. */
 export async function startHubServer(
   config: ServerConfig,
   options: StartOptions = {},
@@ -41,6 +41,16 @@ export async function startHubServer(
     app.get("/", async (_request, reply) => {
       reply.type("text/html; charset=utf-8");
       return notBuiltPage(config.roomCode);
+    });
+  }
+
+  // Cartridges are plain web pages; the launcher frame loads them from here.
+  if (existsSync(config.gamesDir)) {
+    await app.register(fastifyStatic, {
+      root: config.gamesDir,
+      prefix: "/games/",
+      index: ["index.html"],
+      decorateReply: false,
     });
   }
 

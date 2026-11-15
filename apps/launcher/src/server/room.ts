@@ -207,6 +207,16 @@ export class Room {
     }
   }
 
+  /** Host-side rename; names stay unique inside the room. */
+  rename(playerId: string, name: string): void {
+    const record = this.records.get(playerId);
+    if (!record) return;
+    const clean = name.trim().slice(0, 24);
+    if (!clean) return;
+    record.player.name = this.uniqueName(clean, playerId);
+    this.broadcastLobby();
+  }
+
   kick(playerId: string, reason = "Removed by the host"): void {
     const record = this.records.get(playerId);
     if (!record) return;
