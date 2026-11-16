@@ -1,0 +1,16 @@
+{
+  "id": "super-smash-trash",
+  "name": "Super Smash Trash",
+  "version": "0.3.0",
+  "sdk": "^1",
+  "players": { "min": 1, "max": 10, "recommended": [2, 10] },
+  "entry": "host/index.html",
+  "controllers": ["gamepad", "joystick", "buttons", "choice"],
+  "needs": [],
+  "reconnect": "resume",
+  "lateJoin": true,
+  "license": "MIT",
+  "runtime": "desktop",
+  "app": { "executable": "SuperSmashTrash" },
+  "tags": ["platform-fighter", "roster", "stages", "cpus", "10-players"]
+}

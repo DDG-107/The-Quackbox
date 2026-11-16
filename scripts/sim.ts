@@ -28,11 +28,11 @@ const { values } = parseArgs({
     move: { type: "string", default: "0" },
     /** Send a punch press every N ms (rumble-arena attack). */
     punch: { type: "string", default: "0" },
-    /** Pick a character every N ms during rift-rumble select (random fallback). */
+    /** Pick a character every N ms during Super Smash Trash select (random fallback). */
     pick: { type: "string", default: "0" },
-    /** Send an attack press every N ms (rift-rumble). */
+    /** Send an attack press every N ms (Super Smash Trash). */
     attack: { type: "string", default: "0" },
-    /** Send special1 every N ms (rift-rumble). */
+    /** Send special1 every N ms (Super Smash Trash). */
     special: { type: "string", default: "0" },
   },
 });

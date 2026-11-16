@@ -57,12 +57,12 @@ export function loadConfig(overrides: Partial<ServerConfig> = {}): ServerConfig 
     // a mashing finger, and the burst covers a stroke arriving with a few taps.
     messageRatePerSecond: Math.max(1, envInt("QUACKBOX_MSG_RATE", 60)),
     messageBurst: Math.max(1, envInt("QUACKBOX_MSG_BURST", 120)),
-    // apps/launcher/src/server/ -> apps/controller/dist
-    controllerDir: fileURLToPath(new URL("../../../controller/dist/", import.meta.url)),
-    // apps/launcher/src/server/ -> packages/sdk/dist
-    sdkDir: fileURLToPath(new URL("../../../../packages/sdk/dist/", import.meta.url)),
-    // apps/launcher/src/server/ -> <repo>/games
-    gamesDir: fileURLToPath(new URL("../../../../games/", import.meta.url)),
+    // packages/hub/src/ -> apps/controller/dist
+    controllerDir: fileURLToPath(new URL("../../../apps/controller/dist/", import.meta.url)),
+    // packages/hub/src/ -> packages/sdk/dist
+    sdkDir: fileURLToPath(new URL("../../../packages/sdk/dist/", import.meta.url)),
+    // packages/hub/src/ -> <repo>/games
+    gamesDir: fileURLToPath(new URL("../../../games/", import.meta.url)),
   };
 
   return { ...defaults, ...overrides };

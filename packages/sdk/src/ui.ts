@@ -40,11 +40,40 @@ export const ui = {
 
   choice(
     options: { id: string; label: string }[],
-    settings: IdOption & { multi?: boolean } = {},
+    settings: IdOption & { multi?: boolean; orientation?: UISpec["orientation"] } = {},
   ): UISpec {
     return {
+      ...(settings.orientation ? { orientation: settings.orientation } : {}),
       components: [
         { type: "choice", id: settings.id ?? "choice", options, multi: settings.multi },
+      ],
+    };
+  },
+
+  /**
+   * A landscape console pad: two analog sticks and an XYAB diamond. Games still
+   * receive ordinary axis, press and release inputs; the phone only draws it.
+   */
+  gamepad(options: {
+    label?: string;
+    left: { id: string; hz?: number };
+    right?: { id: string; hz?: number };
+    face: { x: UIButton; y: UIButton; a: UIButton; b: UIButton };
+    leftShoulder?: UIButton;
+    rightShoulder?: UIButton;
+  }): UISpec {
+    return {
+      orientation: "landscape",
+      components: [
+        {
+          type: "gamepad",
+          ...(options.label ? { label: options.label } : {}),
+          left: options.left,
+          ...(options.right ? { right: options.right } : {}),
+          face: options.face,
+          ...(options.leftShoulder ? { leftShoulder: options.leftShoulder } : {}),
+          ...(options.rightShoulder ? { rightShoulder: options.rightShoulder } : {}),
+        },
       ],
     };
   },

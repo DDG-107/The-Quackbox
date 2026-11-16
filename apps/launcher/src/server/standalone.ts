@@ -1,7 +1,4 @@
-import { loadConfig } from "./config.js";
-import { startHubServer } from "./http.js";
-import { listLanAddresses } from "./lan.js";
-import type { Room } from "./room.js";
+import { listLanAddresses, loadConfig, startHubServer, type Room } from "@quackbox/hub";
 
 const config = loadConfig();
 const logInputs = process.env.QUACKBOX_DEBUG_INPUT === "1";

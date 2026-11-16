@@ -140,6 +140,8 @@ function statusLabel(): string | null {
 }
 
 function renderJoin(): void {
+  document.body.dataset.orientation = "portrait";
+  document.body.dataset.mode = "menu";
   const typed = document.querySelector<HTMLInputElement>("#name")?.value ?? "";
   const busy = state.status === "connecting" || state.status === "reconnecting";
 
@@ -249,8 +251,16 @@ function updateRoom(): void {
   view.status.textContent = label ?? "";
 }
 
+function applyLayout(): void {
+  const orientation = state.ui?.orientation ?? "portrait";
+  const isGamepad = state.ui?.components.some((component) => component.type === "gamepad") ?? false;
+  document.body.dataset.orientation = orientation;
+  document.body.dataset.mode = isGamepad ? "gamepad" : "menu";
+}
+
 function updateStage(): void {
   if (!view) return;
+  applyLayout();
 
   const key = state.ended ? "ended" : state.ui ? `ui:${state.ui.v}` : "idle";
   if (key === mountedKey) return;
@@ -306,6 +316,20 @@ function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 }
+
+// iOS can ignore the viewport zoom lock on a fast double tap. Suppress the
+// browser's second-tap gesture while leaving the game's pointer presses alone.
+let lastTouchEnd = 0;
+document.addEventListener("gesturestart", (event) => event.preventDefault(), { passive: false });
+document.addEventListener(
+  "touchend",
+  (event) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 320) event.preventDefault();
+    lastTouchEnd = now;
+  },
+  { passive: false },
+);
 
 render();
 

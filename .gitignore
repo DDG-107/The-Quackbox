@@ -10,3 +10,6 @@ Thumbs.db
 !.env.example
 *.tsbuildinfo
 release/
+.work/
+# Personal-use sprite rips: unlicensed, so they never enter the repository.
+games/super-smash-trash/private-art/

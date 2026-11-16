@@ -26,6 +26,7 @@ extraResources:
 
 asar: true
 npmRebuild: false
+afterPack: build/after-pack.cjs
 
 win:
   target:

@@ -1,26 +1,21 @@
-import type { GameResult, InputEvent, Player, UISpec, UITarget } from "@quackbox/protocol";
+import type { GameClientMessage, GameServerMessage } from "@quackbox/protocol";
 
 export type PlayerEventKind = "join" | "rejoin" | "leave" | "removed";
 
-export type BridgeToHost =
-  | { type: "quackbox:ready" }
-  | { type: "quackbox:setUI"; target: UITarget; ui: UISpec }
-  | { type: "quackbox:send"; playerId: string; event: string; data?: unknown }
-  | { type: "quackbox:broadcast"; event: string; data?: unknown }
-  | { type: "quackbox:end"; results: GameResult[] }
-  | { type: "quackbox:log"; args: unknown[] }
-  | { type: "quackbox:error"; message: string; stack?: string; source: string };
+export type BridgeToHost = GameClientMessage;
+export type BridgeToGame = GameServerMessage;
 
-export type BridgeToGame =
-  | {
-      type: "quackbox:init";
-      gameId: string;
-      players: Player[];
-      config: Record<string, unknown>;
-    }
-  | { type: "quackbox:player"; kind: PlayerEventKind; player: Player }
-  | { type: "quackbox:input"; player: Player; input: InputEvent }
-  | { type: "quackbox:stop" };
+/** The narrow surface a desktop game shell exposes to the game renderer. */
+export interface DesktopTransport {
+  send(message: BridgeToHost): void;
+  onMessage(handler: (message: BridgeToGame) => void): () => void;
+}
+
+declare global {
+  interface Window {
+    quackboxDesktop?: DesktopTransport;
+  }
+}
 
 /**
  * The cartridge runs in a sandboxed, opaque-origin iframe, so there is no origin
@@ -28,10 +23,19 @@ export type BridgeToGame =
  * ignored. Messages are treated as data, never as code.
  */
 export function postToHost(message: BridgeToHost): void {
+  if (window.quackboxDesktop) {
+    window.quackboxDesktop.send(message);
+    return;
+  }
   window.parent.postMessage(message, "*");
 }
 
 export function listenToHost(handler: (message: BridgeToGame) => void): void {
+  if (window.quackboxDesktop) {
+    window.quackboxDesktop.onMessage(handler);
+    return;
+  }
+
   window.addEventListener("message", (event) => {
     if (event.source !== window.parent) return;
 

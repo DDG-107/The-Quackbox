@@ -37,6 +37,16 @@ export interface RoomHandlers {
   onPlayerLeave?(player: Player): void;
   onPlayerRemoved?(player: Player): void;
   onLobbyChange?(room: Room): void;
+  /** The attached game application disconnected or ended its session. */
+  onGameClosed?(gameId: string): void;
+}
+
+export type PlayerEventKind = "join" | "rejoin" | "leave" | "removed";
+
+/** The running game application, when one is attached instead of the legacy frame. */
+export interface GameBridge {
+  input(player: Player, input: InputEvent): void;
+  player(kind: PlayerEventKind, player: Player): void;
 }
 
 export interface PlayerRecord {
@@ -67,6 +77,7 @@ export class Room {
   private readonly byToken = new Map<string, string>();
   private readonly graceTimers = new Map<string, NodeJS.Timeout>();
   private uiVersion = 0;
+  private gameBridge: GameBridge | null = null;
 
   constructor(options: RoomOptions, handlers: RoomHandlers = {}) {
     this.code = options.code;
@@ -85,6 +96,15 @@ export class Room {
 
   get connectedCount(): number {
     return this.players.filter((player) => player.connected).length;
+  }
+
+  /** Route inputs and player events to the game process (or frame) currently playing. */
+  attachGameBridge(bridge: GameBridge): void {
+    this.gameBridge = bridge;
+  }
+
+  detachGameBridge(bridge: GameBridge): void {
+    if (this.gameBridge === bridge) this.gameBridge = null;
   }
 
   /**
@@ -148,6 +168,8 @@ export class Room {
 
     if (wasConnected) this.handlers.onPlayerRejoin?.(record.player);
     else this.handlers.onPlayerJoin?.(record.player);
+
+    this.gameBridge?.player(wasConnected ? "rejoin" : "join", record.player);
   }
 
   /** Socket went away: hold the slot for the grace period, then drop it. */
@@ -159,6 +181,7 @@ export class Room {
     record.lastSeen = Date.now();
     this.broadcastLobby();
     this.handlers.onPlayerLeave?.(record.player);
+    this.gameBridge?.player("leave", record.player);
 
     const timer = setTimeout(() => this.remove(record.player.id), this.graceMs);
     timer.unref();
@@ -175,7 +198,8 @@ export class Room {
       record.seq.set(input.id, input.seq);
     }
 
-    this.handlers.onInput?.(record.player, input);
+    if (this.gameBridge) this.gameBridge.input(record.player, input);
+    else this.handlers.onInput?.(record.player, input);
   }
 
   /** Push a controller screen to one player, a whole team, or everyone. */
@@ -234,6 +258,7 @@ export class Room {
     record.socket?.close(4000, "removed");
     this.broadcastLobby();
     this.handlers.onPlayerRemoved?.(record.player);
+    this.gameBridge?.player("removed", record.player);
   }
 
   dispose(): void {

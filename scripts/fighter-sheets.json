@@ -1,0 +1,208 @@
+{
+  "cell": 64,
+  "columns": 8,
+  "outDir": "games/super-smash-trash/private-art/fighters",
+  "generatedModule": "games/super-smash-trash/host/sprites.js",
+  "sheets": [
+    {
+      "key": "link",
+      "file": "games/super-smash-trash/private-art/source/link.png",
+      "tolerance": 30,
+      "mergeGap": 0,
+      "minPixels": 60,
+      "characters": [
+        {
+          "id": "green-hood",
+          "clips": {
+            "idle": [
+              12,
+              13
+            ],
+            "run": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "jump": [
+              28
+            ],
+            "fall": [
+              62
+            ],
+            "attack": [
+              10,
+              11
+            ],
+            "special": [
+              17,
+              18,
+              19
+            ],
+            "hurt": [
+              1
+            ],
+            "ko": [
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "luigi",
+      "file": "games/super-smash-trash/private-art/source/luigi.png",
+      "tolerance": 26,
+      "mergeGap": null,
+      "minPixels": 40,
+      "characters": [
+        {
+          "id": "green-brother",
+          "clips": {
+            "idle": [
+              1,
+              2
+            ],
+            "run": [
+              10,
+              11,
+              12,
+              13
+            ],
+            "jump": [
+              8
+            ],
+            "fall": [
+              8
+            ],
+            "attack": [
+              17,
+              18,
+              19
+            ],
+            "special": [
+              20,
+              21
+            ],
+            "hurt": [
+              16
+            ],
+            "ko": [
+              16
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "batman",
+      "file": "games/super-smash-trash/private-art/source/batman.png",
+      "tolerance": 72,
+      "mergeGap": null,
+      "minPixels": 60,
+      "characters": [
+        {
+          "id": "caped-crusader",
+          "clips": {
+            "idle": [
+              6,
+              7
+            ],
+            "run": [
+              9,
+              10
+            ],
+            "jump": [
+              12
+            ],
+            "fall": [
+              16
+            ],
+            "attack": [
+              21,
+              22
+            ],
+            "special": [
+              17,
+              18
+            ],
+            "hurt": [
+              12
+            ],
+            "ko": [
+              16
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "reaper",
+      "file": "games/super-smash-trash/private-art/source/reaper.png",
+      "tolerance": 22,
+      "mergeGap": 0,
+      "minPixels": 24,
+      "keyByColor": false,
+      "characters": [
+        {
+          "id": "pale-reaper",
+          "clips": {
+            "idle": [
+              62,
+              63
+            ],
+            "run": [
+              70,
+              71,
+              72,
+              73
+            ],
+            "jump": [
+              95
+            ],
+            "fall": [
+              120
+            ],
+            "attack": [
+              196,
+              197,
+              198
+            ],
+            "special": [
+              204,
+              205
+            ],
+            "hurt": [
+              254
+            ],
+            "ko": [
+              260
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "brawler",
+      "file": "games/super-smash-trash/private-art/source/brawler.png",
+      "tolerance": 26,
+      "mergeGap": 0,
+      "minPixels": 30,
+      "panelTolerance": 48,
+      "trimPanel": true,
+      "expandBox": 4,
+      "remove": [
+        [
+          50,
+          120,
+          180,
+          180,
+          255,
+          255
+        ]
+      ]
+    }
+  ]
+}

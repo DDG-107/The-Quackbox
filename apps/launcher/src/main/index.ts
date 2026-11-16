@@ -1,21 +1,27 @@
 import { BrowserWindow, app, ipcMain } from "electron";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   endedMessageSchema,
   uiSpecSchema,
+  uiTargetSchema,
   type InputEvent,
   type Player,
-  type UITarget,
 } from "@quackbox/protocol";
-import { loadConfig, type ServerConfig } from "../server/config.js";
-import { startHubServer, type HubServer } from "../server/http.js";
-import { listLanAddresses } from "../server/lan.js";
-import { TokenBucket } from "../server/limits.js";
-import type { RoomHandlers } from "../server/room.js";
+import {
+  TokenBucket,
+  listLanAddresses,
+  loadConfig,
+  qrSvg,
+  startHubServer,
+  type HubServer,
+  type RoomHandlers,
+  type ServerConfig,
+} from "@quackbox/hub";
 import type { LauncherState, PlayerEvent } from "../shared/api.js";
 import { discoverGames } from "./games.js";
-import { qrSvg } from "./qr.js";
 
 // apps/launcher (when run with `electron .` from this package)
 const appRoot = app.getAppPath();
@@ -31,6 +37,13 @@ const sdkRoot =
 const gamesRoot =
   process.env.QUACKBOX_GAMES_DIR ??
   (packagedRoot ? join(packagedRoot, "games") : join(appRoot, "..", "..", "games"));
+// A desktop game is its own application. In development we run the shared game
+// shell; a packaged build finds each installed game app here.
+const gameShellRoot =
+  process.env.QUACKBOX_GAME_SHELL ?? join(appRoot, "..", "game-shell");
+const gameAppsRoot =
+  process.env.QUACKBOX_GAME_APPS_DIR ??
+  (packagedRoot ? join(packagedRoot, "game-apps") : join(appRoot, "..", "..", "games"));
 
 const config: ServerConfig = loadConfig({
   controllerDir: controllerRoot,
@@ -54,6 +67,11 @@ let games: Awaited<ReturnType<typeof discoverGames>> = [];
 let gamesError: string | null = null;
 let selectedIface: string | null = null;
 let selectedGameId: string | null = null;
+let runningGameId: string | null = null;
+let launchingGameId: string | null = null;
+let gameLaunchError: string | null = null;
+let gameProcess: ChildProcess | null = null;
+let gameStopping = false;
 let startupError: string | null = null;
 let qrCache: { url: string; svg: string } | null = null;
 
@@ -108,6 +126,9 @@ function buildState(): LauncherState {
     gameUrl: selected
       ? `http://127.0.0.1:${port}/games/${encodeURIComponent(selected.id)}/${selected.entry}`
       : null,
+    runningGameId,
+    launchingGameId,
+    gameLaunchError,
     gamesError,
     startupError,
   };
@@ -120,6 +141,149 @@ function broadcast(): void {
 function sendToWindow(channel: string, payload: unknown): void {
   if (!window || window.isDestroyed()) return;
   window.webContents.send(channel, payload);
+}
+
+function restoreLobby(): void {
+  if (!window || window.isDestroyed()) return;
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+}
+
+function resolveGameExecutable(gameId: string): { command: string; prefix: string[] } | null {
+  if (!app.isPackaged) {
+    if (!existsSync(join(gameShellRoot, "package.json"))) return null;
+    return { command: process.execPath, prefix: [gameShellRoot] };
+  }
+
+  const dir = join(gameAppsRoot, gameId);
+  if (!existsSync(dir)) return null;
+  const game = games.find((entry) => entry.id === gameId);
+  const name = game?.app?.executable ?? gameId;
+  const appName = game?.name ?? name;
+  const candidates =
+    process.platform === "win32"
+      ? [`${name}.exe`]
+      : process.platform === "darwin"
+        ? [
+            `${appName}.app/Contents/MacOS/${appName}`,
+            `${appName}.app/Contents/MacOS/${name}`,
+            `${name}.app/Contents/MacOS/${name}`,
+            name,
+          ]
+        : [name];
+
+  for (const candidate of candidates) {
+    const path = join(dir, candidate);
+    if (existsSync(path)) return { command: path, prefix: [] };
+  }
+  return null;
+}
+
+function launchGame(gameId: string): void {
+  // gameProcess can outlive the runningGameId reset during shutdown; never
+  // start a second child over a process that is still exiting.
+  if (!server || gameProcess || runningGameId !== null || launchingGameId !== null) return;
+  const game = games.find((entry) => entry.id === gameId && !entry.error);
+  if (!game || game.runtime !== "desktop") return;
+
+  const executable = resolveGameExecutable(game.id);
+  if (!executable) {
+    gameLaunchError =
+      "This game application is not installed. Build it with pnpm build:game " + game.id + ".";
+    broadcast();
+    return;
+  }
+
+  const ticket = server.hub.createGameTicket(game.id);
+  const args = [
+    ...executable.prefix,
+    `--quackbox-hub=http://127.0.0.1:${server.port}`,
+    `--quackbox-ticket=${ticket}`,
+    `--quackbox-game=${game.id}`,
+    ...(app.isPackaged ? [] : [`--quackbox-game-dir=${join(gamesRoot, game.id)}`]),
+    ...(game.app?.fullscreen === false ? [] : ["--quackbox-fullscreen"]),
+  ];
+
+  selectedGameId = null;
+  launchingGameId = game.id;
+  gameLaunchError = null;
+  gameStopping = false;
+  broadcast();
+
+  let child: ChildProcess;
+  try {
+    child = spawn(executable.command, args, {
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (error) {
+    launchingGameId = null;
+    gameLaunchError = "Could not start the game: " + describe(error);
+    broadcast();
+    return;
+  }
+
+  gameProcess = child;
+  console.log(`[launcher] launching ${game.id} (pid ${child.pid ?? "?"})`);
+
+  child.stdout?.on("data", (data: Buffer) => console.log(`[game] ${data.toString().trimEnd()}`));
+  child.stderr?.on("data", (data: Buffer) => console.error(`[game] ${data.toString().trimEnd()}`));
+
+  child.once("spawn", () => {
+    if (gameProcess !== child) return;
+    launchingGameId = null;
+    runningGameId = game.id;
+    broadcast();
+  });
+
+  child.once("error", (error) => {
+    if (gameProcess !== child) return;
+    gameProcess = null;
+    launchingGameId = null;
+    runningGameId = null;
+    gameLaunchError = "The game failed to start: " + describe(error);
+    restoreLobby();
+    broadcast();
+  });
+
+  child.once("exit", (code, signal) => {
+    if (gameProcess !== child) return;
+    gameProcess = null;
+    const wasStopping = gameStopping;
+    gameStopping = false;
+    launchingGameId = null;
+    runningGameId = null;
+    if (!wasStopping && code !== 0 && code !== null) {
+      gameLaunchError = `The game stopped unexpectedly (${signal ?? `exit ${code}`}). See the terminal for details.`;
+    }
+    console.log(`[launcher] ${game.id} exited (${signal ?? code ?? "closed"})`);
+    restoreLobby();
+    broadcast();
+  });
+}
+
+function stopGame(): void {
+  const child = gameProcess;
+  if (!child) {
+    runningGameId = null;
+    launchingGameId = null;
+    broadcast();
+    return;
+  }
+
+  gameStopping = true;
+  console.log("[launcher] stopping the running game");
+  child.kill();
+
+  // Electron child processes can outlive the parent on Windows; make the
+  // process-tree cleanup explicit if a plain terminate did not take.
+  setTimeout(() => {
+    if (gameProcess !== child) return;
+    if (process.platform === "win32" && child.pid) {
+      execFile("taskkill", ["/PID", String(child.pid), "/T", "/F"], () => undefined);
+    }
+  }, 1_500).unref();
 }
 
 function sendPlayerEvent(kind: PlayerEvent["kind"], player: Player): void {
@@ -144,6 +308,19 @@ async function startHub(): Promise<void> {
     onPlayerRejoin: (player) => sendPlayerEvent("rejoin", player),
     onPlayerLeave: (player) => sendPlayerEvent("leave", player),
     onPlayerRemoved: (player) => sendPlayerEvent("removed", player),
+    onGameClosed: (gameId) => {
+      if (runningGameId !== gameId && launchingGameId !== gameId) return;
+      launchingGameId = null;
+      runningGameId = null;
+      if (gameProcess) {
+        // This close was ours, not a crash; suppress the exit handler's
+        // "stopped unexpectedly" message.
+        gameStopping = true;
+        gameProcess.kill();
+      }
+      restoreLobby();
+      broadcast();
+    },
   };
 
   for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset += 1) {
@@ -186,20 +363,6 @@ function createWindow(): void {
   });
 
   void window.loadFile(fileURLToPath(new URL("../renderer/index.html", import.meta.url)));
-}
-
-function parseTarget(value: unknown): UITarget | null {
-  if (value === "all") return "all";
-  if (typeof value !== "object" || value === null) return null;
-
-  const record = value as { playerId?: unknown; team?: unknown };
-  if (typeof record.playerId === "string" && record.playerId.length <= 64) {
-    return { playerId: record.playerId };
-  }
-  if (typeof record.team === "string" && record.team.length <= 64) {
-    return { team: record.team };
-  }
-  return null;
 }
 
 function formatLogArg(value: unknown): string {
@@ -260,9 +423,20 @@ function registerIpc(): void {
 
   ipcMain.handle("launcher:selectGame", (_event, gameId: unknown) => {
     if (gameId !== null && typeof gameId !== "string") return;
+    const game = typeof gameId === "string" ? games.find((entry) => entry.id === gameId) : null;
+    if (game?.runtime === "desktop") return;
     selectedGameId =
       gameId === null || !games.some((game) => game.id === gameId && !game.error) ? null : gameId;
     broadcast();
+  });
+
+  ipcMain.handle("launcher:launchGame", (_event, gameId: unknown) => {
+    if (typeof gameId !== "string") return;
+    launchGame(gameId);
+  });
+
+  ipcMain.handle("launcher:stopGame", () => {
+    stopGame();
   });
 
   ipcMain.handle("launcher:refreshGames", async () => {
@@ -275,8 +449,8 @@ function registerIpc(): void {
   ipcMain.handle("launcher:game:setUI", (_event, target: unknown, spec: unknown) => {
     if (!server || !allowBridgeCall("setUI")) return;
 
-    const parsedTarget = parseTarget(target);
-    if (!parsedTarget) {
+    const parsedTarget = uiTargetSchema.safeParse(target);
+    if (!parsedTarget.success) {
       // Cartridges are untrusted input: say what was rejected instead of failing silently.
       console.warn(`[game] ignored setUI with an invalid target: ${formatLogArg(target)}`);
       return;
@@ -288,7 +462,7 @@ function registerIpc(): void {
       return;
     }
 
-    server.hub.defaultRoom.setUI(parsedTarget, parsedSpec.data);
+    server.hub.defaultRoom.setUI(parsedTarget.data, parsedSpec.data);
   });
 
   ipcMain.handle(
@@ -357,6 +531,9 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  gameStopping = true;
+  gameProcess?.kill();
+  gameProcess = null;
   void server?.close();
   server = null;
 });

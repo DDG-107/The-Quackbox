@@ -53,6 +53,8 @@ jobs:
 
       - run: pnpm build
 
+      - run: pnpm dist:game
+
       - run: pnpm --filter @quackbox/launcher dist:${{ matrix.target }}
 
       - uses: actions/upload-artifact@v4
@@ -66,5 +68,10 @@ jobs:
             release/*.deb
             release/*.yml
             release/*.blockmap
+            release/game-apps/super-smash-trash/*.exe
+            release/game-apps/super-smash-trash/*.dmg
+            release/game-apps/super-smash-trash/*.zip
+            release/game-apps/super-smash-trash/*.AppImage
+            release/game-apps/super-smash-trash/*.deb
           if-no-files-found: error
           retention-days: 14

@@ -20,6 +20,7 @@ function broken(id: string, name: string, message: string): GameInfo {
     tags: [],
     players: EMPTY_PLAYERS,
     reconnect: "resume",
+    runtime: "web",
     error: message,
   };
 }
@@ -72,6 +73,8 @@ export async function discoverGames(gamesRoot: string): Promise<GameInfo[]> {
       tags: manifest.tags,
       players: manifest.players,
       reconnect: manifest.reconnect,
+      runtime: manifest.runtime,
+      ...(manifest.app ? { app: manifest.app } : {}),
     });
   }
 

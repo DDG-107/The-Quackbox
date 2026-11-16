@@ -41,6 +41,7 @@ export async function startHubServer(
     messageRatePerSecond: config.messageRatePerSecond,
     messageBurst: config.messageBurst,
     handlers: options.handlers,
+    onGameClosed: options.handlers?.onGameClosed,
   });
 
   const hasController = existsSync(join(config.controllerDir, "index.html"));
@@ -87,25 +88,69 @@ export async function startHubServer(
   const port = typeof address === "object" && address !== null ? address.port : config.port;
 
   const wss = new WebSocketServer({
-    server: app.server,
-    path: "/ws",
+    noServer: true,
     maxPayload: config.maxPayloadBytes,
     perMessageDeflate: false,
   });
 
+  // Game applications use their own authenticated socket. Phones never see it.
+  const gameWss = new WebSocketServer({
+    noServer: true,
+    maxPayload: config.maxPayloadBytes,
+    perMessageDeflate: false,
+  });
+
+  // A single upgrade dispatcher is required: multiple ws servers attached to
+  // the same HTTP server would each try to consume the upgrade, and the first
+  // one rejects a path it does not own.
+  app.server.on("upgrade", (request, socket, head) => {
+    const pathname = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
+    if (pathname === "/ws") {
+      wss.handleUpgrade(request, socket, head, (client) => {
+        wss.emit("connection", client, request);
+      });
+      return;
+    }
+    if (pathname === "/game") {
+      gameWss.handleUpgrade(request, socket, head, (client) => {
+        gameWss.emit("connection", client, request);
+      });
+      return;
+    }
+    socket.destroy();
+  });
+
   const lastPong = new Map<WebSocket, number>();
-  wss.on("connection", (socket) => {
+  const pingTargets = new Set<WebSocket>();
+
+  const track = (socket: WebSocket): void => {
+    pingTargets.add(socket);
     lastPong.set(socket, Date.now());
     socket.on("pong", () => lastPong.set(socket, Date.now()));
-    socket.on("close", () => lastPong.delete(socket));
+    socket.on("close", () => {
+      pingTargets.delete(socket);
+      lastPong.delete(socket);
+    });
+  };
+
+  wss.on("connection", (socket) => {
+    track(socket);
     hub.handleConnection(socket);
+  });
+
+  gameWss.on("connection", (socket, request) => {
+    track(socket);
+    const ticket = new URL(request.url ?? "/", "http://127.0.0.1").searchParams.get("ticket");
+    if (!ticket || !hub.attachGame(socket, ticket)) {
+      socket.close(4003, "invalid or expired game ticket");
+    }
   });
 
   // Phones that sleep or switch apps stop answering pings; their slot is held
   // by the grace timer, so terminating the dead socket is safe.
   const heartbeat = setInterval(() => {
     const now = Date.now();
-    for (const socket of wss.clients) {
+    for (const socket of pingTargets) {
       const seen = lastPong.get(socket) ?? now;
       if (now - seen > config.dropAfterMs) {
         socket.terminate();
@@ -124,6 +169,7 @@ export async function startHubServer(
     async close() {
       clearInterval(heartbeat);
       hub.dispose();
+      await new Promise<void>((resolve) => gameWss.close(() => resolve()));
       await new Promise<void>((resolve) => wss.close(() => resolve()));
       await app.close();
     },

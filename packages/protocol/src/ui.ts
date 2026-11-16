@@ -25,6 +25,26 @@ const buttonsComponent = z.object({
   buttons: z.array(uiButtonSchema).min(1).max(12),
 });
 
+const gamepadStickSchema = z.object({
+  id: idSchema,
+  hz: z.number().int().min(1).max(60).optional(),
+});
+
+const gamepadComponent = z.object({
+  type: z.literal("gamepad"),
+  label: z.string().max(64).optional(),
+  left: gamepadStickSchema,
+  right: gamepadStickSchema.optional(),
+  face: z.object({
+    x: uiButtonSchema,
+    y: uiButtonSchema,
+    a: uiButtonSchema,
+    b: uiButtonSchema,
+  }),
+  leftShoulder: uiButtonSchema.optional(),
+  rightShoulder: uiButtonSchema.optional(),
+});
+
 const dpadComponent = z.object({
   type: z.literal("dpad"),
   id: idSchema,
@@ -49,7 +69,9 @@ const textComponent = z.object({
 const choiceComponent = z.object({
   type: z.literal("choice"),
   id: idSchema,
-  options: z.array(z.object({ id: idSchema, label: z.string().min(1).max(64) })).min(1).max(24),
+  // 40 rather than 24: a fighter-select screen lists a whole roster, and the
+  // controller scrolls its option list, so a full roster must fit one message.
+  options: z.array(z.object({ id: idSchema, label: z.string().min(1).max(64) })).min(1).max(40),
   multi: z.boolean().optional(),
 });
 
@@ -85,6 +107,7 @@ const customComponent = z.object({
 export const componentSchema = z.discriminatedUnion("type", [
   joystickComponent,
   buttonsComponent,
+  gamepadComponent,
   dpadComponent,
   drawpadComponent,
   textComponent,
@@ -117,4 +140,9 @@ export const uiSpecSchema = controllerUISchema.omit({ v: true });
 export type UISpec = z.infer<typeof uiSpecSchema>;
 
 /** Who receives a UI descriptor. */
-export type UITarget = "all" | { playerId: string } | { team: string };
+export const uiTargetSchema = z.union([
+  z.literal("all"),
+  z.object({ playerId: z.string().min(1).max(64) }),
+  z.object({ team: z.string().min(1).max(64) }),
+]);
+export type UITarget = z.infer<typeof uiTargetSchema>;

@@ -214,13 +214,16 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^7.0.0
-        version: 7.3.8(@types/node@22.20.5)(tsx@4.23.15)
+        version: 7.3.8(@types/node@22.20.5)(jiti@2.7.0)(tsx@4.23.15)
 
-  apps/launcher:
+  apps/game-shell:
     dependencies:
       '@fastify/static':
         specifier: ^8.0.0
         version: 8.3.0
+      '@quackbox/hub':
+        specifier: workspace:*
+        version: link:../../packages/hub
       '@quackbox/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -245,7 +248,47 @@ importers:
         version: 45.3.2(supports-color@7.2.0)
       electron-builder:
         specifier: ^26.18.0
-        version: 26.18.0(electron-builder-squirrel-windows@26.18.0)(supports-color@7.2.0)
+        version: 26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)(supports-color@7.2.0)
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+
+  apps/launcher:
+    dependencies:
+      '@fastify/static':
+        specifier: ^8.0.0
+        version: 8.3.0
+      '@quackbox/hub':
+        specifier: workspace:*
+        version: link:../../packages/hub
+      '@quackbox/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+      fastify:
+        specifier: ^5.0.0
+        version: 5.12.8
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
+      ws:
+        specifier: ^8.18.0
+        version: 8.23.0
+    devDependencies:
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
+      '@types/ws':
+        specifier: ^8.5.0
+        version: 8.18.2
+      electron:
+        specifier: ^45.3.2
+        version: 45.3.2(supports-color@7.2.0)
+      electron-builder:
+        specifier: ^26.18.0
+        version: 26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)(supports-color@7.2.0)
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
@@ -267,6 +310,31 @@ importers:
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
+
+  packages/hub:
+    dependencies:
+      '@fastify/static':
+        specifier: ^8.0.0
+        version: 8.3.0
+      '@quackbox/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      fastify:
+        specifier: ^5.0.0
+        version: 5.12.8
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
+      ws:
+        specifier: ^8.18.0
+        version: 8.23.0
+    devDependencies:
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
+      '@types/ws':
+        specifier: ^8.5.0
+        version: 8.18.2
 
   packages/protocol:
     dependencies:
@@ -2783,7 +2851,7 @@ snapshots:
 
   '@types/qrcode@1.5.6':
     dependencies:
-      '@types/node': 22.20.5
+      '@types/node': 24.19.2
 
   '@types/responselike@1.0.3':
     dependencies:
@@ -3220,7 +3288,7 @@ snapshots:
       - dmg-builder
       - supports-color
 
-  electron-builder@26.18.0(electron-builder-squirrel-windows@26.18.0)(supports-color@7.2.0):
+  electron-builder@26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)(supports-color@7.2.0):
     dependencies:
       app-builder-lib: 26.18.0(dmg-builder@26.18.0)(electron-builder-squirrel-windows@26.18.0)(supports-color@7.2.0)
       builder-util: 26.16.0(supports-color@7.2.0)
@@ -3233,6 +3301,7 @@ snapshots:
       simple-update-notifier: 2.0.0
       yargs: 17.7.3
     transitivePeerDependencies:
+      - dmg-builder
       - electron-builder-squirrel-windows
       - supports-color
 
@@ -4348,19 +4417,6 @@ snapshots:
       '@types/node': 22.20.5
       fsevents: 2.3.3
       jiti: 2.7.0
-      tsx: 4.23.15
-
-  vite@7.3.8(@types/node@22.20.5)(tsx@4.23.15):
-    dependencies:
-      esbuild: 0.28.2
-      fdir: 6.5.0(picomatch@4.0.7)
-      picomatch: 4.0.7
-      postcss: 8.5.33
-      rollup: 4.68.3
-      tinyglobby: 0.2.17
-    optionalDependencies:
-      '@types/node': 22.20.5
-      fsevents: 2.3.3
       tsx: 4.23.15
 
   webcrypto-core@1.9.2:

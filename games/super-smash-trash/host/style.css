@@ -1,0 +1,407 @@
+@font-face {
+  font-family: "Bungee";
+  src: url("../assets/fonts/Bungee-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #06060c;
+  --panel: #12121d;
+  --text: #f4f4fb;
+  --muted: #9696ac;
+  --accent: #ffd23f;
+  --orange: #ff8a3d;
+  --mint: #7cffb2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow-x: hidden;
+  background:
+    radial-gradient(80% 55% at 50% -12%, rgba(255, 142, 53, 0.18) 0%, transparent 62%),
+    radial-gradient(58% 48% at 100% 100%, rgba(124, 255, 178, 0.07) 0%, transparent 70%),
+    radial-gradient(70% 60% at 0% 20%, rgba(77, 130, 255, 0.09) 0%, transparent 66%),
+    linear-gradient(180deg, #11111d 0%, var(--bg) 54%, #040407 100%);
+  color: var(--text);
+  font: 16px/1.5 ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.34;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 58px 58px;
+  mask-image: radial-gradient(ellipse at center, black 10%, transparent 76%);
+}
+
+main {
+  position: relative;
+  z-index: 1;
+  width: min(74rem, 95vw);
+  padding: 1.15rem 0 1.5rem;
+}
+
+header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.72rem;
+  padding: 0 0.18rem;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 14px rgba(255, 210, 63, 0.9);
+}
+
+h1 {
+  margin: 0.2rem 0 0;
+  font-family: "Bungee", ui-rounded, system-ui, sans-serif;
+  font-size: clamp(2rem, 4.7vw, 3.65rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: 0.005em;
+  background: linear-gradient(180deg, #fff8c9 0%, #ffd23f 46%, #ff7a2f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter:
+    drop-shadow(0 3px 0 rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 22px rgba(255, 160, 40, 0.22));
+}
+
+.match {
+  display: grid;
+  justify-items: end;
+  gap: 0.28rem;
+  padding-bottom: 0.08rem;
+}
+
+.tag {
+  padding: 0.27rem 0.52rem;
+  border: 1px solid rgba(255, 210, 63, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 210, 63, 0.08);
+  color: var(--accent);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.match .muted {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.clock {
+  display: flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  color: var(--muted);
+  font-family: "Bungee", ui-rounded, system-ui, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.clock span:first-child {
+  font-size: 2.55rem;
+  color: var(--text);
+  text-shadow: 0 0 18px rgba(255, 210, 63, 0.13);
+}
+
+.unit {
+  margin-left: 0.05rem;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.screen {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: #08080f;
+  box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 210, 63, 0.055),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.34) 100%);
+}
+
+.screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.5;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.035) 0,
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  mix-blend-mode: soft-light;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0a0a14;
+}
+
+footer {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  margin-top: 0.72rem;
+  text-align: center;
+}
+
+footer p {
+  margin: 0;
+}
+
+#status {
+  padding: 0.32rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(8, 8, 15, 0.7);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.host-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cpu-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.18rem 0.3rem 0.18rem 0.45rem;
+  border: 1px solid rgba(159, 232, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(159, 232, 255, 0.06);
+}
+
+.cpu-controls[hidden] {
+  display: none;
+}
+
+.cpu-controls button {
+  min-width: 2.15rem;
+  padding: 0.42rem 0.55rem;
+  border-color: rgba(159, 232, 255, 0.42);
+  background: linear-gradient(180deg, #d8f8ff 0%, #9fe8ff 55%, #5eb8d1 100%);
+  box-shadow:
+    0 3px 0 #24566a,
+    0 6px 14px rgba(80, 190, 220, 0.12);
+}
+
+.cpu-controls button:active {
+  box-shadow:
+    0 1px 0 #24566a,
+    0 3px 8px rgba(80, 190, 220, 0.1);
+}
+
+#cpu-count {
+  min-width: 4.15rem;
+  color: #c8f6ff;
+  font-family: "Bungee", ui-rounded, system-ui, sans-serif;
+  font-size: 0.63rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.host-controls button {
+  padding: 0.62rem 1.15rem;
+  border: 1px solid rgba(255, 224, 111, 0.7);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffe678 0%, #ffd23f 52%, #ff9a38 100%);
+  color: #171006;
+  font-family: "Bungee", ui-rounded, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow:
+    0 4px 0 #7a3f14,
+    0 8px 22px rgba(255, 140, 40, 0.18);
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
+}
+
+.host-controls button:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.host-controls button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.35) brightness(0.72);
+  opacity: 0.55;
+  transform: none;
+}
+
+.host-controls button:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #7a3f14,
+    0 4px 12px rgba(255, 140, 40, 0.14);
+}
+
+.host-controls button[hidden] {
+  display: none;
+}
+
+.hint {
+  max-width: 59rem;
+  color: var(--muted);
+  font-size: 0.73rem;
+  line-height: 1.55;
+}
+
+.credits {
+  color: rgba(150, 150, 172, 0.52);
+  font-size: 0.57rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+@media (max-height: 950px) {
+  main {
+    width: min(74rem, 95vw, calc((100vh - 12rem) * 16 / 9));
+    padding-top: 0.65rem;
+    padding-bottom: 0.7rem;
+  }
+
+  header {
+    margin-bottom: 0.45rem;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 3.5vw, 2.35rem);
+  }
+
+  .clock span:first-child {
+    font-size: 2rem;
+  }
+
+  footer {
+    gap: 0.3rem;
+    margin-top: 0.55rem;
+  }
+
+  #status {
+    padding: 0.24rem 0.62rem;
+    font-size: 0.7rem;
+  }
+
+  .host-controls button {
+    padding: 0.5rem 0.95rem;
+    font-size: 0.6rem;
+  }
+
+  .cpu-controls button {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .hint,
+  .credits {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  main {
+    width: 94vw;
+    padding-top: 0.8rem;
+  }
+
+  header {
+    align-items: center;
+  }
+
+  h1 {
+    font-size: clamp(1.55rem, 8.5vw, 2.2rem);
+  }
+
+  .eyebrow {
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+  }
+
+  .tag {
+    display: none;
+  }
+
+  .clock span:first-child {
+    font-size: 1.75rem;
+  }
+
+  .hint {
+    font-size: 0.68rem;
+  }
+}

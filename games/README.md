@@ -1,8 +1,10 @@
 # Cartridges
 
-A cartridge is one folder here. The launcher scans `games/*/manifest.json`, shows a
-card for each one, and loads `host/index.html` in a sandboxed iframe served from
-`/games/<id>/`. Nothing else in the repo needs to change to add a game.
+A cartridge is one folder here. The launcher scans `games/*/manifest.json` and shows
+a card for each one. A legacy web cartridge loads `host/index.html` in a sandboxed
+iframe served from `/games/<id>/`; a `runtime: "desktop"` game is packaged with
+`apps/game-shell` and launched as its own application window. Nothing else in the
+repo needs to change to add a game.
 
 ```
 games/my-game/
@@ -25,7 +27,7 @@ by `license-check`.
 | `draw-and-vote` | drawpad, gallery, choice voting, `hub.end(results)` |
 | `tug-of-war` | crowd-as-one-actor input, teams, a shared rope |
 | `rumble-arena` | real-time canvas brawler: fixed 60Hz loop, joystick + buttons, 2–8 players |
-| `rift-rumble` | full platform fighter: 20-fighter phone select, stocks, shields, specials, stages |
+| `super-smash-trash` | desktop platform fighter: 20 passives, landscape gamepad, CPUs, up to 10 fighters and six pure-platform stages |
 | `_template` | the smallest working cartridge; copied by `pnpm create-game` |
 
 ## Using the SDK
@@ -49,7 +51,33 @@ The hub serves the cartridge API at `/sdk/index.js`, so a host page needs no bui
 
 Lifecycle hooks: `onStart`, `onPlayerJoin`, `onPlayerLeave`, `onPlayerRejoin`,
 `onPlayerRemoved`, `onInput`, `onStop`. Screens are built with `ui.buttons`, `ui.text`,
-`ui.choice`, `ui.joystick`, `ui.drawpad`, `ui.waiting`, `ui.label` or `ui.stack`.
+`ui.choice`, `ui.gamepad`, `ui.joystick`, `ui.drawpad`, `ui.waiting`, `ui.label` or
+`ui.stack`. `ui.gamepad` asks the phone for a landscape console pad (two sticks, XYAB,
+shoulders); its axes and buttons arrive through the same `onInput` events.
+
+## Desktop games
+
+A game becomes a standalone application by setting `runtime` and the executable name
+in its manifest:
+
+```json
+"runtime": "desktop",
+"app": { "executable": "MyGame" }
+```
+
+`apps/game-shell` supplies the window, sandboxed preload bridge, game-link connection
+and standalone QR join screen. Package one game with:
+
+```bash
+corepack pnpm build:game my-game
+corepack pnpm dist:game            # installer; add the id for another game
+```
+
+The app is written to `release/game-apps/<id>/`. It runs standalone with no arguments
+(embedded hub + join screen) or receives the platform's hub URL and ticket when
+launched from QuackBox. The game code keeps using `defineGame` and `ui.*` unchanged.
+The platform currently bundles only Super Smash Trash; see `README.md` for the discovery
+path and `apps/game-shell/README.md` for the shell internals.
 
 ## ASSETS.md
 

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#06060c" />
+    <title>Super Smash Trash</title>
+    <link
+      rel="preload"
+      href="../assets/fonts/Bungee-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">The Dumpsterverse's finest garbage</p>
+          <h1>Super Smash Trash</h1>
+        </div>
+        <div class="match">
+          <span class="tag">1–10 fighters · CPUs welcome</span>
+          <span class="muted small">Stocks 3 · 90s</span>
+          <div class="clock"><span id="clock">90</span><span class="unit">s</span></div>
+        </div>
+      </header>
+
+      <section class="screen">
+        <canvas
+          id="stage"
+          width="960"
+          height="540"
+          aria-label="Super Smash Trash match stage"
+        ></canvas>
+      </section>
+
+      <footer>
+        <p id="status">Waiting for fighters…</p>
+        <div class="host-controls">
+          <button id="start" type="button">Start match</button>
+          <button id="rematch" type="button" hidden>Rematch</button>
+          <div class="cpu-controls" id="cpu-controls" hidden>
+            <button id="remove-cpu" type="button" aria-label="Remove a CPU">−</button>
+            <span id="cpu-count">0 CPUs</span>
+            <button id="add-cpu" type="button" aria-label="Add a CPU">+</button>
+          </div>
+        </div>
+        <p class="hint">
+          Pick every fighter, choose a stage, add CPUs, then start. Turn your phone
+          sideways: left stick moves, right stick aims, XYAB attacks and jumps, GUARD
+          blocks, DROP slips through platforms.
+        </p>
+        <p class="credits">
+          Backdrops: ansimuz, Zeyu Ren, Alucard, acasas · Junk icons: Clint Bellanger ·
+          Bungee type: David Jonathan Ross (OFL)
+        </p>
+      </footer>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

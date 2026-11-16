@@ -2,6 +2,38 @@ import type { GameInfo, LauncherState, QuackboxApi } from "../shared/api.js";
 import type { GameResult, UITarget } from "@quackbox/protocol";
 import "./styles.css";
 
+const CART_ART: Record<string, { accent: string; icon: string }> = {
+  "tap-race": {
+    accent: "#ffd23f",
+    icon: `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M16 9v46" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M20 12h35l-9 11 9 11H20z" fill="currentColor"/><path d="M26 17h7v7h-7zM40 17h7v7h-7zM33 24h7v7h-7z" fill="#11111a"/></svg>`,
+  },
+  "draw-and-vote": {
+    accent: "#ff7ad9",
+    icon: `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M13 45c0-16 8-26 20-26s20 9 20 23c0 11-9 14-14 8-4-5-9-4-9 2 0 6-8 8-12 4-3-3-5-6-5-11z" fill="currentColor"/><circle cx="23" cy="28" r="4" fill="#11111a"/><circle cx="35" cy="23" r="4" fill="#11111a"/><circle cx="45" cy="32" r="4" fill="#11111a"/><path d="M46 10l8 8-18 18-8 2 2-8z" fill="#fff5fb" stroke="#11111a" stroke-width="2"/></svg>`,
+  },
+  "tug-of-war": {
+    accent: "#7cffb2",
+    icon: `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M7 22c8 0 8 10 16 10s8-10 18-10 8 10 16 10M7 42c8 0 8-10 16-10s8 10 18 10 8-10 16-10" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="32" r="9" fill="#11111a" stroke="currentColor" stroke-width="4"/><path d="M9 32h8M47 32h8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`,
+  },
+  "rumble-arena": {
+    accent: "#ff8f3f",
+    icon: `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M10 39l13-23 8 14 9-15 14 24" fill="currentColor"/><path d="M20 20l-8 9 10 6 8-10zM44 20l8 9-10 6-8-10z" fill="#11111a"/><path d="M17 46h30" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="19" r="5" fill="#fff2d9"/></svg>`,
+  },
+  "super-smash-trash": {
+    accent: "#ff6b6b",
+    icon: `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M18 22h28l-4 31H22z" fill="currentColor"/><path d="M21 14h22v8H21z" fill="#fff0d6" stroke="#11111a" stroke-width="2"/><path d="M28 14V9h8v5" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M25 29l3 17M32 29v17M39 29l-3 17" stroke="#11111a" stroke-width="2" stroke-linecap="round"/><path d="M27 8l3-5 3 4 3-4 2 6z" fill="#ffd23f"/></svg>`,
+  },
+};
+
+const FALLBACK_CART_ART = {
+  accent: "#9fe8ff",
+  icon: `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="13" y="22" width="38" height="25" rx="8" stroke="currentColor" stroke-width="5"/><path d="M22 22l4-7h12l4 7M24 34h.01M40 34h.01" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>`,
+};
+
+function cartArt(id: string): { accent: string; icon: string } {
+  return CART_ART[id] ?? FALLBACK_CART_ART;
+}
+
 function requireRoot(): HTMLElement {
   const element = document.querySelector<HTMLElement>("#app");
   if (!element) throw new Error("Lobby is missing its #app element.");
@@ -161,6 +193,8 @@ function run(api: QuackboxApi): void {
         </header>
 
         ${current.startupError ? `<p class="alert">${escapeHtml(current.startupError)}</p>` : ""}
+        ${current.gameLaunchError ? `<p class="alert">${escapeHtml(current.gameLaunchError)}</p>` : ""}
+        ${nowPlayingView(current)}
 
         <main class="lobby">
           <section class="panel join">
@@ -281,24 +315,59 @@ function run(api: QuackboxApi): void {
     if (current.games.length === 0) {
       return `<p class="empty">No cartridges yet. Drop a folder with a <code>manifest.json</code> into <code>games/</code>, then refresh.</p>`;
     }
-    return `<ul class="carts">${current.games.map(cartView).join("")}</ul>`;
+    return `<ul class="carts">${current.games.map((game) => cartView(game, current)).join("")}</ul>`;
   }
 
-  function cartView(game: GameInfo): string {
+  function nowPlayingView(current: LauncherState): string {
+    const running = current.games.find((game) => game.id === current.runningGameId);
+    const launching = current.games.find((game) => game.id === current.launchingGameId);
+    if (!running && !launching) return "";
+
+    const title = launching?.name ?? running?.name ?? "Game";
+    const detail = launching ? "Starting its own window…" : "Running in its own window";
+    return `
+      <div class="nowplaying">
+        <div>
+          <p class="eyebrow">${launching ? "Launching" : "Now playing"}</p>
+          <strong>${escapeHtml(title)}</strong>
+          <span class="muted small">${escapeHtml(detail)}</span>
+        </div>
+        <button class="ghost danger" data-stop="1">Stop game</button>
+      </div>`;
+  }
+
+  function cartView(game: GameInfo, current: LauncherState): string {
     const range = game.players.recommended
       ? `${game.players.recommended[0]}–${game.players.recommended[1]}`
       : `${game.players.min}–${game.players.max}`;
     const meta = game.error
       ? escapeHtml(game.error)
-      : `${range} players · v${escapeHtml(game.version)} · reconnect: ${escapeHtml(game.reconnect)}`;
+      : `${range} players · v${escapeHtml(game.version)} · ${game.runtime === "desktop" ? "desktop app" : "in-lobby"}`;
     const tags = game.tags.map((tag) => `<em>${escapeHtml(tag)}</em>`).join("");
+    const isRunning = current.runningGameId === game.id;
+    const isLaunching = current.launchingGameId === game.id;
+    const busy = current.runningGameId !== null || current.launchingGameId !== null;
+    const disabled = Boolean(game.error) || busy;
+    const action = isRunning
+      ? `<span class="status running">Running</span>`
+      : isLaunching
+        ? `<span class="status">Launching…</span>`
+        : game.runtime === "desktop"
+          ? `<span class="play">Play</span>`
+          : "";
+    const art = cartArt(game.id);
 
     return `
       <li>
-        <button class="cart ${game.error ? "broken" : ""}" data-game="${escapeHtml(game.id)}" ${game.error ? "disabled" : ""}>
-          <strong>${escapeHtml(game.name)}</strong>
-          <span class="muted small">${meta}</span>
-          ${tags ? `<span class="tags">${tags}</span>` : ""}
+        <button class="cart ${game.error ? "broken" : ""}" data-game="${escapeHtml(game.id)}" style="--cart-accent:${art.accent}" ${disabled ? "disabled" : ""}>
+          <span class="cart-art" aria-hidden="true">${art.icon}</span>
+          <span class="cart-copy">
+            <span class="cart-kicker">${game.runtime === "desktop" ? "Desktop cartridge" : "Party cartridge"}</span>
+            <strong>${escapeHtml(game.name)}</strong>
+            <span class="muted small">${meta}</span>
+            ${tags ? `<span class="tags">${tags}</span>` : ""}
+            ${action}
+          </span>
         </button>
       </li>`;
   }
@@ -420,9 +489,16 @@ function run(api: QuackboxApi): void {
         return;
       }
 
+      if (target.closest("[data-stop]")) {
+        void api.stopGame();
+        return;
+      }
+
       const cart = target.closest<HTMLElement>("[data-game]");
       if (cart?.dataset.game) {
-        void api.selectGame(cart.dataset.game);
+        const game = state?.games.find((entry) => entry.id === cart.dataset.game);
+        if (game?.runtime === "desktop") void api.launchGame(game.id);
+        else void api.selectGame(cart.dataset.game);
         return;
       }
 

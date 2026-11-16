@@ -3,6 +3,7 @@ import type { ComponentType } from "./ui.js";
 
 const controllerKindSchema = z.enum([
   "buttons",
+  "gamepad",
   "joystick",
   "dpad",
   "drawpad",
@@ -38,6 +39,14 @@ export const gameManifestSchema = z
     license: z.string().min(1),
     assetLicenses: z.string().default("ASSETS.md"),
     tags: z.array(z.string().max(24)).default([]),
+    /** `desktop` games are launched as their own application; `web` is the legacy frame. */
+    runtime: z.enum(["web", "desktop"]).default("web"),
+    app: z
+      .object({
+        executable: z.string().min(1).max(64).optional(),
+        fullscreen: z.boolean().optional(),
+      })
+      .optional(),
   })
   .refine((manifest) => manifest.players.max >= manifest.players.min, {
     message: "players.max must be >= players.min",

@@ -24,6 +24,9 @@ export interface GameInfo {
   tags: string[];
   players: GameManifest["players"];
   reconnect: GameManifest["reconnect"];
+  /** Desktop games launch as their own application; web games use the legacy frame. */
+  runtime: GameManifest["runtime"];
+  app?: GameManifest["app"];
   /** Present when the cartridge was found but cannot be played. */
   error?: string;
 }
@@ -43,6 +46,9 @@ export interface LauncherState {
   games: GameInfo[];
   selectedGameId: string | null;
   gameUrl: string | null;
+  runningGameId: string | null;
+  launchingGameId: string | null;
+  gameLaunchError: string | null;
   gamesError: string | null;
   startupError: string | null;
 }
@@ -61,6 +67,8 @@ export interface QuackboxApi {
   kick(playerId: string): Promise<void>;
   rename(playerId: string, name: string): Promise<void>;
   selectGame(gameId: string | null): Promise<void>;
+  launchGame(gameId: string): Promise<void>;
+  stopGame(): Promise<void>;
   refreshGames(): Promise<void>;
   ready(): Promise<void>;
   onState(callback: (state: LauncherState) => void): () => void;

@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { randomUUID } from "node:crypto";
 import type { RawData, WebSocket } from "ws";
 import {
   PROTOCOL_VERSION,
@@ -8,6 +9,7 @@ import {
   type JoinMessage,
 } from "@quackbox/protocol";
 import { TokenBucket } from "./limits.js";
+import { GameLink } from "./game-link.js";
 import { Room, type PlayerRecord, type RoomHandlers } from "./room.js";
 
 export interface HubOptions {
@@ -20,6 +22,8 @@ export interface HubOptions {
   messageBurst: number;
   maxPlayers?: number;
   handlers?: RoomHandlers;
+  /** A game process went away; the platform uses this to restore its library. */
+  onGameClosed?: (gameId: string) => void;
 }
 
 /** Dropped messages before a socket is hung up: this is flooding, not jitter. */
@@ -34,6 +38,12 @@ interface Client {
   lastRateWarn: number;
 }
 
+interface GameTicket {
+  gameId: string;
+  roomCode: string;
+  expiresAt: number;
+}
+
 /** Owns the rooms and every socket lifetime. Game code never touches a socket. */
 export class Hub {
   readonly defaultRoom: Room;
@@ -42,6 +52,8 @@ export class Hub {
   private readonly maxPayloadBytes: number;
   private disposed = false;
   private rateLimited = 0;
+  private readonly gameTickets = new Map<string, GameTicket>();
+  private gameLink: GameLink | null = null;
 
   constructor(private readonly options: HubOptions) {
     this.maxPayloadBytes = options.maxPayloadBytes;
@@ -82,6 +94,43 @@ export class Hub {
     };
   }
 
+  /** A one-use, short-lived ticket that lets one game application attach. */
+  createGameTicket(gameId: string, roomCode = this.defaultRoom.code): string {
+    const now = Date.now();
+    for (const [ticket, record] of this.gameTickets) {
+      if (record.expiresAt <= now) this.gameTickets.delete(ticket);
+    }
+
+    const ticket = randomUUID();
+    this.gameTickets.set(ticket, { gameId, roomCode, expiresAt: now + 30_000 });
+    return ticket;
+  }
+
+  /** Attach a game socket after its ticket has been checked. */
+  attachGame(socket: WebSocket, ticket: string): boolean {
+    const record = this.gameTickets.get(ticket);
+    this.gameTickets.delete(ticket);
+    if (!record || record.expiresAt <= Date.now()) return false;
+
+    const room = this.rooms.get(record.roomCode);
+    if (!room) return false;
+
+    this.gameLink?.close("replaced by another game");
+    let link: GameLink | null = null;
+    link = new GameLink({
+      socket,
+      room,
+      gameId: record.gameId,
+      onClosed: (gameId) => {
+        if (this.gameLink !== link) return;
+        this.gameLink = null;
+        this.options.onGameClosed?.(gameId);
+      },
+    });
+    this.gameLink = link;
+    return true;
+  }
+
   handleConnection(socket: WebSocket): void {
     this.clients.set(socket, {
       room: this.defaultRoom,
@@ -103,6 +152,9 @@ export class Hub {
 
   dispose(): void {
     this.disposed = true;
+    this.gameLink?.close("hub shutting down");
+    this.gameLink = null;
+    this.gameTickets.clear();
     for (const room of this.rooms.values()) room.dispose();
     this.rooms.clear();
     this.clients.clear();

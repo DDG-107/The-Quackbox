@@ -2,6 +2,7 @@ import type { Component } from "@quackbox/protocol";
 import { buttonsComponent } from "./buttons.js";
 import { choiceComponent } from "./choice.js";
 import { drawpadComponent } from "./drawpad.js";
+import { gamepadComponent } from "./gamepad.js";
 import { joystickComponent } from "./joystick.js";
 import { labelComponent, unsupportedComponent, waitingComponent } from "./static.js";
 import { textComponent } from "./text.js";
@@ -13,6 +14,8 @@ export function createComponent(component: Component, context: ComponentContext)
   switch (component.type) {
     case "buttons":
       return buttonsComponent(component, context);
+    case "gamepad":
+      return gamepadComponent(component, context);
     case "text":
       return textComponent(component, context);
     case "choice":

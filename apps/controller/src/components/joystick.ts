@@ -1,16 +1,15 @@
 import { clampAxis, el, round2, type ComponentContext, type ComponentOf } from "./context.js";
 
-export function joystickComponent(
-  component: ComponentOf<"joystick">,
+export function createJoystickPad(
+  id: string,
+  hzValue: number | undefined,
   context: ComponentContext,
 ): HTMLElement {
-  const wrap = el("div", `component joystick ${component.side ?? "left"}`);
   const pad = el("div", "joy-pad");
   const knob = el("div", "joy-knob");
   pad.append(knob);
-  wrap.append(pad);
 
-  const hz = Math.max(1, Math.min(60, component.hz ?? 20));
+  const hz = Math.max(1, Math.min(60, hzValue ?? 20));
   const interval = 1000 / hz;
 
   let seq = 0;
@@ -25,7 +24,7 @@ export function joystickComponent(
     lastSent = now;
     pending = null;
     seq += 1;
-    context.send({ t: "in", id: component.id, k: "axis", x: round2(x), y: round2(y), seq });
+    context.send({ t: "in", id, k: "axis", x: round2(x), y: round2(y), seq });
   };
 
   const flush = (): void => {
@@ -81,5 +80,14 @@ export function joystickComponent(
   pad.addEventListener("lostpointercapture", release);
   pad.addEventListener("contextmenu", (event) => event.preventDefault());
 
+  return pad;
+}
+
+export function joystickComponent(
+  component: ComponentOf<"joystick">,
+  context: ComponentContext,
+): HTMLElement {
+  const wrap = el("div", `component joystick ${component.side ?? "left"}`);
+  wrap.append(createJoystickPad(component.id, component.hz, context));
   return wrap;
 }

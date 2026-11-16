@@ -1,4 +1,5 @@
 export * from "./inputs.js";
+export * from "./game-link.js";
 export * from "./manifest.js";
 export * from "./messages.js";
 export * from "./player.js";
