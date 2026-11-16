@@ -9,3 +9,5 @@ packages:
 allowBuilds:
   esbuild: true
   electron: true
+  # electron-builder pulls this in for Squirrel.Windows, a target we do not use.
+  electron-winstaller: false

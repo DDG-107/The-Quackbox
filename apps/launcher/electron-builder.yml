@@ -1,0 +1,57 @@
+appId: app.quackbox.host
+productName: The QuackBox
+copyright: Copyright © 2026 The QuackBox contributors
+
+directories:
+  output: ../../release
+  buildResources: build
+
+# The launcher bundles its own source; node_modules production deps (fastify,
+# ws, qrcode) are attached by electron-builder from package.json.
+files:
+  - dist/**/*
+  - package.json
+
+# The hub serves these at runtime, so they must sit outside the asar archive.
+extraResources:
+  - from: ../controller/dist
+    to: quackbox/controller
+  - from: ../../packages/sdk/dist
+    to: quackbox/sdk
+  - from: ../../games
+    to: quackbox/games
+    filter:
+      - "**/*"
+      - "!**/README.md"
+
+asar: true
+npmRebuild: false
+
+win:
+  target:
+    - nsis
+  artifactName: The-QuackBox-${version}-win-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: The QuackBox
+
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.games
+  # Unsigned builds: signing identities are supplied by the release process.
+  identity: null
+  artifactName: The-QuackBox-${version}-mac-${arch}.${ext}
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Game
+  maintainer: The QuackBox contributors
+  artifactName: The-QuackBox-${version}-linux-${arch}.${ext}

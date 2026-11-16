@@ -11,11 +11,13 @@ screen, phones join over local Wi-Fi with a server-hosted web controller. Games
 Tech: TypeScript everywhere, pnpm workspaces, Fastify + `ws` for the LAN server,
 vanilla TS for the controller, zod for every wire boundary.
 
-Current state: Phases 0–5 are done. The launcher, lobby, QR flow, cartridge
-discovery/loader, the `@quackbox/sdk` bridge, the controller components, three starter
-cartridges (`tap-race`, `draw-and-vote`, `tug-of-war`) and the `create-game` scaffolder
-work. Phase 5 adds connection troubleshooting screens, a cartridge crash boundary and
-rate limits on phone sockets and the cartridge bridge. Phase 6 (packaging and CI) is next.
+Current state: Phases 0–6 are done. The launcher, lobby, QR flow, cartridge
+discovery/loader, the `@quackbox/sdk` bridge, the controller components, four starter
+cartridges (`tap-race`, `draw-and-vote`, `tug-of-war`, `rumble-arena`) and the
+`create-game` scaffolder work. Phase 5 adds connection troubleshooting screens, a
+cartridge crash boundary and rate limits. Phase 6 adds `electron-builder` installers
+(packaged assets in `resources/quackbox/`) and the GitHub Actions check/release
+workflows. Next: bigger real-time cartridges; `rumble-arena` is the reference.
 
 ## Commands
 
@@ -29,6 +31,8 @@ corepack pnpm typecheck        # tsc --noEmit in every package
 corepack pnpm lint
 corepack pnpm license-check
 corepack pnpm check            # all three checks
+corepack pnpm dist             # build + installer for this OS into release/
+corepack pnpm dist:dir         # unpacked build for a smoke test
 corepack pnpm create-game my-game          # new cartridge from games/_template
 corepack pnpm sim --players 20 --drop 3    # headless bots + reconnect test
 corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
@@ -57,7 +61,7 @@ corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
   served at `/sdk/index.js`. This is the only channel a cartridge has to the hub.
 - `packages/create-game/` — the scaffolder behind `pnpm create-game`; copies
   `games/_template` and rewrites the id and name.
-- `games/` — three starter cartridges plus `_template` (folders starting with `_` are
+- `games/` — four starter cartridges plus `_template` (folders starting with `_` are
   skipped by discovery and `license-check`).
 - `tools/license-check/` — cartridge manifest + asset license guardrail.
 
@@ -106,5 +110,5 @@ corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
 ## Roadmap (do not skip ahead)
 
 Phase 2 Electron shell + lobby + cartridge discovery → Phase 3 SDK and controller
-components → Phase 4 starter games and load tests (done) → Phase 5 hardening →
-Phase 6 packaging and CI.
+components → Phase 4 starter games and load tests (done) → Phase 5 hardening (done) →
+Phase 6 packaging and CI (done) → bigger cartridges (`rumble-arena` is the reference).

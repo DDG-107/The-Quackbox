@@ -8,6 +8,7 @@ import { PROTOCOL_VERSION, serverMessageSchema } from "@quackbox/protocol";
  *   corepack pnpm sim --players 100 --drop 10 --seconds 8
  *   corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30
  *   corepack pnpm sim --players 4 --drop 0 --draw 250 --seconds 40
+ *   corepack pnpm sim --players 4 --drop 0 --move 60 --punch 400 --seconds 20
  */
 const { values } = parseArgs({
   options: {
@@ -22,6 +23,10 @@ const { values } = parseArgs({
     draw: { type: "string", default: "0" },
     /** Pull both tug-of-war ropes every N ms; only your team's press counts. */
     pull: { type: "string", default: "0" },
+    /** Send a move axis every N ms (rumble-arena movement). */
+    move: { type: "string", default: "0" },
+    /** Send a punch press every N ms (rumble-arena attack). */
+    punch: { type: "string", default: "0" },
   },
 });
 
@@ -30,6 +35,8 @@ const holdMs = Number.parseFloat(values.seconds) * 1000;
 const tapMs = Number.parseInt(values.tap, 10);
 const drawMs = Number.parseInt(values.draw, 10);
 const pullMs = Number.parseInt(values.pull, 10);
+const moveMs = Number.parseInt(values.move, 10);
+const punchMs = Number.parseInt(values.punch, 10);
 const dropCount = Math.min(Number.parseInt(values.drop, 10), playerCount);
 const url = values.url;
 const room = values.room?.toUpperCase();
@@ -161,10 +168,34 @@ async function main(): Promise<void> {
     }, pullMs);
   }
 
+  let moveHandle: NodeJS.Timeout | null = null;
+  if (moveMs > 0) {
+    console.log(`[sim] moving every ${moveMs}ms from ${clients.length} client(s)`);
+    let moveSeq = 0;
+    moveHandle = setInterval(() => {
+      for (const [index, client] of clients.entries()) {
+        moveSeq += 1;
+        // Alternate directions with a phase offset so bots do not stack up.
+        const x = Math.sin(moveSeq / 18 + index * 1.7) >= 0 ? 1 : -1;
+        client.send({ t: "in", id: "move", k: "axis", x, y: 0, seq: moveSeq });
+      }
+    }, moveMs);
+  }
+
+  let punchHandle: NodeJS.Timeout | null = null;
+  if (punchMs > 0) {
+    console.log(`[sim] punching every ${punchMs}ms from ${clients.length} client(s)`);
+    punchHandle = setInterval(() => {
+      for (const client of clients) client.send({ t: "in", id: "punch", k: "press" });
+    }, punchMs);
+  }
+
   await sleep(holdMs);
   if (tapHandle) clearInterval(tapHandle);
   if (drawHandle) clearInterval(drawHandle);
   if (pullHandle) clearInterval(pullHandle);
+  if (moveHandle) clearInterval(moveHandle);
+  if (punchHandle) clearInterval(punchHandle);
 
   const health = await fetch(httpHealthUrl()).then((response) => response.json());
   console.log(`[sim] hub health: ${JSON.stringify(health)}`);

@@ -24,6 +24,7 @@ by `license-check`.
 | `tap-race` | buttons at 100 players, a top-ten board instead of 100 avatars |
 | `draw-and-vote` | drawpad, gallery, choice voting, `hub.end(results)` |
 | `tug-of-war` | crowd-as-one-actor input, teams, a shared rope |
+| `rumble-arena` | real-time canvas brawler: fixed 60Hz loop, joystick + buttons, 2–8 players |
 | `_template` | the smallest working cartridge; copied by `pnpm create-game` |
 
 ## Using the SDK

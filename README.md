@@ -3,11 +3,12 @@
 A LAN party platform. The host app runs the game on the big screen; everyone else's
 phone becomes a controller. No internet, no accounts, no installs on the phones.
 
-**Status: Phases 0–5 complete.** The Electron launcher, lobby, QR join flow,
-cartridge loader, the `@quackbox/sdk` bridge, the controller components and three
-starter cartridges (Tap Race, Draw and Vote, Crowd Tug-of-War) work. `pnpm create-game`
-starts a new cartridge from `games/_template`. Phase 5 adds connection troubleshooting
-screens, a cartridge crash boundary and rate limits on phones and the bridge.
+**Status: Phases 0–6 complete.** The Electron launcher, lobby, QR join flow,
+cartridge loader, the `@quackbox/sdk` bridge, the controller components and four
+starter cartridges (Tap Race, Draw and Vote, Crowd Tug-of-War, Rumble Arena) work.
+`pnpm create-game` starts a new cartridge from `games/_template`. Phase 5 adds
+connection troubleshooting screens, a cartridge crash boundary and rate limits;
+Phase 6 adds `electron-builder` installers and GitHub Actions CI/release builds.
 
 ## Quickstart
 
@@ -39,6 +40,8 @@ corepack pnpm dev:controller   # Vite on :5173, proxies /ws and /health to :4321
 | `pnpm dev:controller` | Vite dev server for the phone controller |
 | `pnpm build` | Cartridge SDK + controller + launcher main/preload + lobby renderer |
 | `pnpm start` | Open the launcher using the last build |
+| `pnpm dist` | Build and package the host app for this OS into `release/` |
+| `pnpm dist:dir` | Unpacked build in `release/<platform>-unpacked`, for smoke tests |
 | `pnpm typecheck` | `tsc --noEmit` in every package |
 | `pnpm lint` | ESLint over the whole repo |
 | `pnpm license-check` | Cartridge manifests + `ASSETS.md` guardrail |
@@ -47,6 +50,25 @@ corepack pnpm dev:controller   # Vite on :5173, proxies /ws and /health to :4321
 | `pnpm sim --players 100 --tap 200` | Headless bots: join, tap (or `--draw`), drop and resume slots |
 
 `pnpm` here means `corepack pnpm` unless you have pnpm installed globally.
+
+## Packaging
+
+```bash
+corepack pnpm dist        # installer(s) for the current OS, in release/
+corepack pnpm dist:dir    # unpacked app, for a quick smoke test
+```
+
+`electron-builder` is configured in `apps/launcher/electron-builder.yml`. The app
+bundles its main, preload and renderer into an asar archive; the phone controller,
+the cartridge SDK and `games/` are copied to `resources/quackbox/`, which the main
+process resolves when `app.isPackaged`. Builds are unsigned: configure your own
+signing before distributing, and drop a licensed icon at
+`apps/launcher/build/icon.png` — otherwise the default Electron icon is used.
+
+`.github/workflows/ci.yml` runs `pnpm check` and `pnpm build` on every push and pull
+request. `.github/workflows/release.yml` builds Windows (NSIS), macOS (dmg + zip) and
+Linux (AppImage + deb) installers on a `v*` tag or manual dispatch; artifacts are on
+the Actions run.
 
 ## Layout
 
@@ -60,7 +82,8 @@ packages/protocol/           zod schemas + types shared by hub, controller and g
 packages/sdk/                cartridge API, served to games at /sdk/index.js
 packages/create-game/        the `pnpm create-game` scaffolder
 tools/license-check/         CI guardrail for cartridge assets
-games/                       the three starter cartridges, `_template`, see games/README.md
+apps/launcher/electron-builder.yml  installer targets and packaged resource layout
+games/                       the four starter cartridges, `_template`, see games/README.md
 scripts/sim.ts               simulated phones for load and reconnect tests
 ```
 
@@ -127,6 +150,10 @@ the SDK from the hub itself — no build step, no dependency to install:
 - Lifecycle: `onPlayerJoin`, `onPlayerLeave`, `onPlayerRejoin`, `onPlayerRemoved`,
   `onStop`.
 
+The real-time reference is `games/rumble-arena`: a fixed 60Hz canvas brawler for up
+to eight phones. Its README covers sprites, audio, hitstun/knockback and how to reuse
+the loop for sports-style games — and why the phone never receives game state.
+
 Controller components available today: `buttons`, `text`, `choice`, `joystick`,
 `drawpad`, `waiting`, `label`. `/games/` and `/sdk/` are served with
 `Access-Control-Allow-Origin: *` because the sandboxed frame has an opaque origin and
@@ -150,7 +177,10 @@ Configuration lives in `apps/launcher/src/server/config.ts` and can be overridde
   Draw and Vote, Crowd Tug-of-War, and a 100-bot load test (`pnpm sim ... --tap`)
 - ✅ **Phase 5** — firewall / AP-isolation guidance on the lobby and join screens,
   cartridge crash boundary and load timeout, per-socket and bridge rate limits
-- ⬜ **Phase 6** — `electron-builder` releases, CI build matrix, docs
+- ✅ **Phase 6** — `electron-builder` installers for Windows/macOS/Linux, packaged
+  `resources/quackbox` assets, GitHub Actions check and release matrix
+- **Next** — bigger cartridges: `rumble-arena` is the real-time reference; sprites,
+  audio and sports-style games build on the same fixed-step loop
 
 ## License
 

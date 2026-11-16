@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Rumble Arena</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">Real-time brawler · last one standing</p>
+          <h1>Rumble Arena</h1>
+        </div>
+        <div class="clock"><span id="clock">90</span>s</div>
+      </header>
+
+      <section class="arena">
+        <canvas id="stage" width="960" height="540"></canvas>
+        <div class="banner" id="banner" hidden></div>
+      </section>
+
+      <footer>
+        <p id="status">Waiting for fighters…</p>
+        <p class="hint">Phone: joystick to move, JUMP, PUNCH. Knock everyone off the stage.</p>
+      </footer>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

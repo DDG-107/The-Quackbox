@@ -19,10 +19,18 @@ import { qrSvg } from "./qr.js";
 
 // apps/launcher (when run with `electron .` from this package)
 const appRoot = app.getAppPath();
+// A packaged build keeps its served assets in resources/quackbox/ (see
+// electron-builder.yml); the dev tree keeps them next to the packages.
+const packagedRoot = app.isPackaged ? join(process.resourcesPath, "quackbox") : null;
 const controllerRoot =
-  process.env.QUACKBOX_CONTROLLER_DIR ?? join(appRoot, "..", "controller", "dist");
-const sdkRoot = process.env.QUACKBOX_SDK_DIR ?? join(appRoot, "..", "..", "packages", "sdk", "dist");
-const gamesRoot = process.env.QUACKBOX_GAMES_DIR ?? join(appRoot, "..", "..", "games");
+  process.env.QUACKBOX_CONTROLLER_DIR ??
+  (packagedRoot ? join(packagedRoot, "controller") : join(appRoot, "..", "controller", "dist"));
+const sdkRoot =
+  process.env.QUACKBOX_SDK_DIR ??
+  (packagedRoot ? join(packagedRoot, "sdk") : join(appRoot, "..", "..", "packages", "sdk", "dist"));
+const gamesRoot =
+  process.env.QUACKBOX_GAMES_DIR ??
+  (packagedRoot ? join(packagedRoot, "games") : join(appRoot, "..", "..", "games"));
 
 const config: ServerConfig = loadConfig({
   controllerDir: controllerRoot,
