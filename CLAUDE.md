@@ -15,9 +15,13 @@ to get wrong.
 - Player identity is the reconnect token, never the socket.
 - Never call `pnpm license-check` optional: cartridges need a `manifest.json` and an
   `ASSETS.md` listing `- path | license | source URL` for every asset.
-- Current state: Phases 0–4. Launcher, lobby, QR, cartridge loader, SDK bridge,
-  controller components, three starter cartridges and the `create-game` scaffolder
-  exist; Phase 5 hardening is next.
+- Current state: Phases 0–5. Launcher, lobby, QR, cartridge loader, SDK bridge,
+  controller components, three starter cartridges, the `create-game` scaffolder and the
+  Phase 5 hardening exist; Phase 6 (packaging and CI) is next.
+- Phase 5 limits are deliberate: 60 messages/s per phone socket (120 burst, close at
+  500 dropped), 180 bridge calls/s (240 burst), 32 KB game-event payloads, and a 10s
+  cartridge start timeout. The SDK catches cartridge throws and reports them so the
+  lobby can show a crash card. Do not loosen these to make a game work.
 - Cartridges import `/sdk/index.js` (built from `packages/sdk`). Keep `defineGame`,
   `ui.*` and `HubContext` compatible. `hub.setUI` takes `"all"`, a player id or
   `{ team }`; the SDK maps that to the wire target and the main process validates it.

@@ -3,10 +3,11 @@
 A LAN party platform. The host app runs the game on the big screen; everyone else's
 phone becomes a controller. No internet, no accounts, no installs on the phones.
 
-**Status: Phases 0–4 complete.** The Electron launcher, lobby, QR join flow,
+**Status: Phases 0–5 complete.** The Electron launcher, lobby, QR join flow,
 cartridge loader, the `@quackbox/sdk` bridge, the controller components and three
 starter cartridges (Tap Race, Draw and Vote, Crowd Tug-of-War) work. `pnpm create-game`
-starts a new cartridge from `games/_template`.
+starts a new cartridge from `games/_template`. Phase 5 adds connection troubleshooting
+screens, a cartridge crash boundary and rate limits on phones and the bridge.
 
 ## Quickstart
 
@@ -86,6 +87,16 @@ scripts/sim.ts               simulated phones for load and reconnect tests
   `quackbox:*` messages, the lobby renderer relays them to the main process over IPC,
   and the main process validates every target and descriptor before touching a room.
   The frame is `sandbox="allow-scripts"`, so game code never sees Node or the launcher.
+- **Crash boundary.** A cartridge callback that throws is caught by the SDK, reported
+  over the bridge, and shown on the TV as a “Cartridge stopped” card with Reload and
+  Back to lobby. A cartridge that never announces itself within 10s gets the same card.
+  Only the iframe fails; the lobby, hub and roster keep running.
+- **Rate limits.** Every phone socket has a 60 msg/s token bucket (120 burst); sustained
+  flooding past 500 dropped messages closes it with code 4008. The cartridge bridge
+  allows 180 calls/s (240 burst) and drops `send`/`broadcast` payloads over 32 KB.
+- **Connection help.** The lobby and the phone join screen both carry a “Phones can't
+  join?” panel: same network, the platform's firewall prompt, AP/client isolation, the
+  exact address and room code, and VPNs.
 
 ## Writing a cartridge
 
@@ -123,8 +134,8 @@ its ES module imports would otherwise be blocked.
 
 Configuration lives in `apps/launcher/src/server/config.ts` and can be overridden with
 `QUACKBOX_PORT`, `QUACKBOX_ROOM`, `QUACKBOX_GRACE_MS`, `QUACKBOX_HEARTBEAT_MS`,
-`QUACKBOX_DROP_MS`, `QUACKBOX_MAX_PAYLOAD`, `QUACKBOX_GAMES_DIR` (cartridge root) and
-`QUACKBOX_CONTROLLER_DIR` (built controller).
+`QUACKBOX_DROP_MS`, `QUACKBOX_MAX_PAYLOAD`, `QUACKBOX_MSG_RATE`, `QUACKBOX_MSG_BURST`,
+`QUACKBOX_GAMES_DIR` (cartridge root) and `QUACKBOX_CONTROLLER_DIR` (built controller).
 
 ## Roadmap
 
@@ -137,7 +148,8 @@ Configuration lives in `apps/launcher/src/server/config.ts` and can be overridde
   bridge, and the buttons / text / choice / joystick / drawpad / waiting components
 - ✅ **Phase 4** — `_template` cartridge, `create-game` scaffolder, Tap Race,
   Draw and Vote, Crowd Tug-of-War, and a 100-bot load test (`pnpm sim ... --tap`)
-- ⬜ **Phase 5** — firewall/AP-isolation screens, crash boundaries, rate limits
+- ✅ **Phase 5** — firewall / AP-isolation guidance on the lobby and join screens,
+  cartridge crash boundary and load timeout, per-socket and bridge rate limits
 - ⬜ **Phase 6** — `electron-builder` releases, CI build matrix, docs
 
 ## License

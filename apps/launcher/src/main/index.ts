@@ -11,6 +11,7 @@ import {
 import { loadConfig, type ServerConfig } from "../server/config.js";
 import { startHubServer, type HubServer } from "../server/http.js";
 import { listLanAddresses } from "../server/lan.js";
+import { TokenBucket } from "../server/limits.js";
 import type { RoomHandlers } from "../server/room.js";
 import type { LauncherState, PlayerEvent } from "../shared/api.js";
 import { discoverGames } from "./games.js";
@@ -31,6 +32,14 @@ const config: ServerConfig = loadConfig({
 
 const MAX_PORT_ATTEMPTS = 10;
 
+// Cartridges are untrusted and can postMessage as fast as they like: shape the
+// bridge here, in the main process, so the renderer's relay cannot be flooded.
+const BRIDGE_RATE_PER_SECOND = 180;
+const BRIDGE_BURST = 240;
+/** One game event fans out to 100 phones; keep the payload small on purpose. */
+const MAX_GAME_PAYLOAD_BYTES = 32 * 1024;
+const BRIDGE_WARN_INTERVAL_MS = 5_000;
+
 let server: HubServer | null = null;
 let window: BrowserWindow | null = null;
 let games: Awaited<ReturnType<typeof discoverGames>> = [];
@@ -39,6 +48,10 @@ let selectedIface: string | null = null;
 let selectedGameId: string | null = null;
 let startupError: string | null = null;
 let qrCache: { url: string; svg: string } | null = null;
+
+const bridgeBucket = new TokenBucket(BRIDGE_RATE_PER_SECOND, BRIDGE_BURST);
+let bridgeDropped = 0;
+let bridgeWarnedAt = 0;
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -70,6 +83,7 @@ function buildState(): LauncherState {
   const selected = games.find((game) => game.id === selectedGameId && !game.error) ?? null;
 
   return {
+    platform: process.platform,
     room: config.roomCode,
     port,
     lan: addresses.map((entry) => ({
@@ -189,6 +203,28 @@ function formatLogArg(value: unknown): string {
   }
 }
 
+/** False means this bridge call is over budget and should be dropped. */
+function allowBridgeCall(call: string): boolean {
+  if (bridgeBucket.take()) return true;
+
+  bridgeDropped += 1;
+  const now = Date.now();
+  if (now - bridgeWarnedAt >= BRIDGE_WARN_INTERVAL_MS) {
+    bridgeWarnedAt = now;
+    console.warn(`[game] rate limit: dropped ${bridgeDropped} bridge call(s), last was ${call}`);
+  }
+  return false;
+}
+
+function payloadTooLarge(data: unknown): boolean {
+  if (data === undefined) return false;
+  try {
+    return Buffer.byteLength(JSON.stringify(data)) > MAX_GAME_PAYLOAD_BYTES;
+  } catch {
+    return true;
+  }
+}
+
 function registerIpc(): void {
   ipcMain.handle("launcher:getState", () => buildState());
 
@@ -229,7 +265,7 @@ function registerIpc(): void {
   // --- cartridge bridge -----------------------------------------------------
 
   ipcMain.handle("launcher:game:setUI", (_event, target: unknown, spec: unknown) => {
-    if (!server) return;
+    if (!server || !allowBridgeCall("setUI")) return;
 
     const parsedTarget = parseTarget(target);
     if (!parsedTarget) {
@@ -250,15 +286,25 @@ function registerIpc(): void {
   ipcMain.handle(
     "launcher:game:send",
     (_event, playerId: unknown, event: unknown, data: unknown) => {
-      if (!server || typeof playerId !== "string" || typeof event !== "string") return;
+      if (!server || !allowBridgeCall("send")) return;
+      if (typeof playerId !== "string" || typeof event !== "string") return;
       if (event.length === 0 || event.length > 64) return;
+      if (payloadTooLarge(data)) {
+        console.warn(`[game] dropped send(${event}): payload over ${MAX_GAME_PAYLOAD_BYTES} bytes`);
+        return;
+      }
       server.hub.defaultRoom.sendEvent(playerId, event, data);
     },
   );
 
   ipcMain.handle("launcher:game:broadcast", (_event, event: unknown, data: unknown) => {
-    if (!server || typeof event !== "string") return;
+    if (!server || !allowBridgeCall("broadcast")) return;
+    if (typeof event !== "string") return;
     if (event.length === 0 || event.length > 64) return;
+    if (payloadTooLarge(data)) {
+      console.warn(`[game] dropped broadcast(${event}): payload over ${MAX_GAME_PAYLOAD_BYTES} bytes`);
+      return;
+    }
     server.hub.defaultRoom.broadcastEvent(event, data);
   });
 
@@ -272,8 +318,12 @@ function registerIpc(): void {
   });
 
   ipcMain.handle("launcher:game:log", (_event, args: unknown) => {
-    if (!Array.isArray(args)) return;
-    console.log(`[game] ${args.slice(0, 12).map(formatLogArg).join(" ")}`);
+    if (!Array.isArray(args) || !allowBridgeCall("log")) return;
+    const line = args
+      .slice(0, 12)
+      .map((arg) => formatLogArg(arg).slice(0, 500))
+      .join(" ");
+    console.log(`[game] ${line}`);
   });
 }
 

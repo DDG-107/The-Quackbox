@@ -8,7 +8,8 @@ export type BridgeToHost =
   | { type: "quackbox:send"; playerId: string; event: string; data?: unknown }
   | { type: "quackbox:broadcast"; event: string; data?: unknown }
   | { type: "quackbox:end"; results: GameResult[] }
-  | { type: "quackbox:log"; args: unknown[] };
+  | { type: "quackbox:log"; args: unknown[] }
+  | { type: "quackbox:error"; message: string; stack?: string; source: string };
 
 export type BridgeToGame =
   | {

@@ -265,7 +265,12 @@ export class Room {
   private send(record: PlayerRecord, message: ServerMessage): void {
     const socket = record.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    socket.send(JSON.stringify(message));
+    try {
+      socket.send(JSON.stringify(message));
+    } catch {
+      // The socket can close between the readyState check and the send; the
+      // 'close' handler detaches the record, so there is nothing else to do.
+    }
   }
 
   private clearGrace(playerId: string): void {

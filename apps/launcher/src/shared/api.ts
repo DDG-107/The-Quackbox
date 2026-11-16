@@ -30,6 +30,8 @@ export interface GameInfo {
 
 /** Everything the lobby window renders. Pushed over IPC on every change. */
 export interface LauncherState {
+  /** `process.platform`; the lobby tailors firewall guidance to it. */
+  platform: string;
   room: string;
   port: number;
   lan: LanOption[];

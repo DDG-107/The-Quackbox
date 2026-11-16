@@ -15,6 +15,10 @@ export interface ServerConfig {
   dropAfterMs: number;
   /** Frame size cap; phones only ever send tiny input messages. */
   maxPayloadBytes: number;
+  /** Sustained inbound messages per second, per phone socket. */
+  messageRatePerSecond: number;
+  /** Messages a socket may send back-to-back before the sustained rate applies. */
+  messageBurst: number;
   /** Built phone controller, served at `/`. */
   controllerDir: string;
   /** Built cartridge SDK, served at `/sdk/`. */
@@ -49,6 +53,10 @@ export function loadConfig(overrides: Partial<ServerConfig> = {}): ServerConfig 
     heartbeatMs: envInt("QUACKBOX_HEARTBEAT_MS", 5_000),
     dropAfterMs: envInt("QUACKBOX_DROP_MS", 15_000),
     maxPayloadBytes: envInt("QUACKBOX_MAX_PAYLOAD", 16 * 1024),
+    // Design input rate is 10–20Hz analog plus event presses; 60/s is slack for
+    // a mashing finger, and the burst covers a stroke arriving with a few taps.
+    messageRatePerSecond: Math.max(1, envInt("QUACKBOX_MSG_RATE", 60)),
+    messageBurst: Math.max(1, envInt("QUACKBOX_MSG_BURST", 120)),
     // apps/launcher/src/server/ -> apps/controller/dist
     controllerDir: fileURLToPath(new URL("../../../controller/dist/", import.meta.url)),
     // apps/launcher/src/server/ -> packages/sdk/dist

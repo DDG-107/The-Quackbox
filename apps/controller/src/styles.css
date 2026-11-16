@@ -140,6 +140,38 @@ button:disabled {
   padding: 0 0.25rem;
 }
 
+.help {
+  background: var(--panel);
+  border: 1px solid #262635;
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.help summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.help ol {
+  margin: 0.7rem 0 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.45rem;
+  line-height: 1.45;
+}
+
+.help p {
+  margin: 0.7rem 0 0;
+}
+
+.help code {
+  color: var(--text);
+  word-break: break-all;
+}
+
 .bar {
   display: flex;
   align-items: center;

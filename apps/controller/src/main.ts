@@ -162,10 +162,17 @@ function renderJoin(): void {
       </form>
       ${state.notice ? `<p class="notice">${escapeHtml(state.notice)}</p>` : ""}
     </section>
-    <p class="hint">
-      Can't connect? Use the same Wi-Fi as the host. Guest networks and "AP isolation"
-      block phone-to-laptop traffic, and a firewall prompt on the laptop must be allowed.
-    </p>`;
+    <details class="help" ${state.notice || state.status === "closed" ? "open" : ""}>
+      <summary>Can't connect?</summary>
+      <ol>
+        <li>Join the same Wi-Fi as the TV. Guest networks, “guest mode” and mobile data usually cannot reach the host.</li>
+        <li>Turn off AP / client isolation on the router — it blocks phone-to-laptop traffic even on the right Wi-Fi.</li>
+        <li>On the host computer, allow the firewall prompt for private networks. Windows and macOS only ask once.</li>
+        <li>Type <code>${escapeHtml(location.host)}</code> in the address bar, then room <code>${escapeHtml(state.room ?? "—")}</code>.</li>
+        <li>Turn off VPNs on the phone and the host; they hide the LAN from each other.</li>
+      </ol>
+      <p>If the page loads but this screen never connects, reload once — the host may still be starting.</p>
+    </details>`;
 
   document.querySelector<HTMLFormElement>("#join-form")?.addEventListener("submit", (event) => {
     event.preventDefault();

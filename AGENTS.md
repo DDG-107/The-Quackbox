@@ -11,10 +11,11 @@ screen, phones join over local Wi-Fi with a server-hosted web controller. Games
 Tech: TypeScript everywhere, pnpm workspaces, Fastify + `ws` for the LAN server,
 vanilla TS for the controller, zod for every wire boundary.
 
-Current state: Phases 0–4 are done. The launcher, lobby, QR flow, cartridge
+Current state: Phases 0–5 are done. The launcher, lobby, QR flow, cartridge
 discovery/loader, the `@quackbox/sdk` bridge, the controller components, three starter
 cartridges (`tap-race`, `draw-and-vote`, `tug-of-war`) and the `create-game` scaffolder
-work. Phase 5 (hardening) is next.
+work. Phase 5 adds connection troubleshooting screens, a cartridge crash boundary and
+rate limits on phone sockets and the cartridge bridge. Phase 6 (packaging and CI) is next.
 
 ## Commands
 
@@ -41,7 +42,8 @@ corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
   plus inferred types. Source-exported (`exports: "./src/index.ts"`), no build step.
 - `apps/launcher/src/server/` — `hub.ts` (sockets, join dispatch), `room.ts` (player
   slots, tokens, UI replay, grace timers), `http.ts` (Fastify + static controller +
-  heartbeat), `config.ts`, `lan.ts`, `standalone.ts` (headless runner).
+  heartbeat), `limits.ts` (token bucket for socket and bridge budgets), `config.ts`,
+  `lan.ts`, `standalone.ts` (headless runner).
 - `apps/launcher/src/main/` — Electron main: `index.ts` (window, IPC, port fallback),
   `games.ts` (manifest discovery), `qr.ts` (SVG QR), `preload.ts` (context bridge).
 - `apps/launcher/src/renderer/` — the lobby UI. It renders only what `LauncherState`

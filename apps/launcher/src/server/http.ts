@@ -38,6 +38,8 @@ export async function startHubServer(
     roomCode: config.roomCode,
     graceMs: config.graceMs,
     maxPayloadBytes: config.maxPayloadBytes,
+    messageRatePerSecond: config.messageRatePerSecond,
+    messageBurst: config.messageBurst,
     handlers: options.handlers,
   });
 

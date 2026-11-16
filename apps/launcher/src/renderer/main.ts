@@ -24,6 +24,10 @@ function run(api: QuackboxApi): void {
   /** URL currently in the iframe; prevents a roster update from reloading a game. */
   let stagedUrl: string | null = null;
   let frame: HTMLIFrameElement | null = null;
+  /** A cartridge that never says hello is treated as a crash, not a black screen. */
+  const READY_TIMEOUT_MS = 10_000;
+  let readyTimer: number | null = null;
+  let crashVisible = false;
 
   api.onState((next) => {
     // Do not clobber an open rename field; the state is applied when editing ends.
@@ -54,7 +58,11 @@ function run(api: QuackboxApi): void {
     const payload = data as Record<string, unknown>;
     switch (type) {
       case "quackbox:ready":
+        clearReadyTimer();
         sendInit();
+        break;
+      case "quackbox:error":
+        showCrash("The cartridge hit an error", crashDetail(payload));
         break;
       case "quackbox:setUI":
         void api.setGameUI(payload.target as UITarget, payload.ui as never);
@@ -114,12 +122,15 @@ function run(api: QuackboxApi): void {
       postToFrame({ type: "quackbox:stop" });
       frame = null;
     }
+    clearReadyTimer();
 
     stagedUrl = state.gameUrl;
     app.innerHTML = state.gameUrl ? stageView(state) : lobbyView(state);
     bind();
 
     frame = app.querySelector<HTMLIFrameElement>("#game");
+    crashVisible = false;
+    if (frame) armReadyTimer();
 
     if (editing) {
       const input = app.querySelector<HTMLInputElement>(".rename-input");
@@ -177,7 +188,7 @@ function run(api: QuackboxApi): void {
 
   function joinPanel(current: LauncherState): string {
     if (!current.joinUrl) {
-      return `<p class="alert">No LAN address found. Connect this machine to Wi-Fi or pick a network below.</p>${interfacePicker(current)}`;
+      return `<p class="alert">No LAN address found. Connect this machine to Wi-Fi, or pick a network below. Phones cannot reach a hub with no LAN address.</p>${interfacePicker(current)}${connectionHelp(current)}`;
     }
 
     return `
@@ -185,7 +196,41 @@ function run(api: QuackboxApi): void {
       <code class="url">${escapeHtml(current.joinUrl)}</code>
       <p class="muted small">Scan with a phone camera, or type the address.</p>
       ${interfacePicker(current)}
+      ${connectionHelp(current)}
     `;
+  }
+
+  /**
+   * The host-side troubleshooting screen. It is always available because the
+   * moments it is needed — nobody has joined yet — are exactly when a host has
+   * no other feedback to go on.
+   */
+  function connectionHelp(current: LauncherState): string {
+    return `
+      <details class="help">
+        <summary>Phones can't join?</summary>
+        <ol>
+          <li><strong>Same network.</strong> The phone must be on the same Wi-Fi as this computer — not a guest network, and not mobile data.</li>
+          <li><strong>Allow the firewall.</strong> ${firewallHelp(current.platform, current.port)}</li>
+          <li><strong>Turn off AP isolation.</strong> Guest networks and many routers block phone-to-laptop traffic. Disable “AP isolation”, “client isolation” or “guest mode” for the network the TV is on.</li>
+          <li><strong>Type the address.</strong> Open <code>${escapeHtml(current.joinUrl ?? "http://<this computer's IP>:port")}</code> on the phone and enter room <code>${escapeHtml(current.room)}</code>.</li>
+          <li><strong>Turn off VPNs.</strong> A VPN on the phone or the host can hide the LAN from both sides.</li>
+        </ol>
+        <p class="muted small">If the page never loads, it is the network or the firewall — the room code only matters once the phone reaches this server.</p>
+      </details>`;
+  }
+
+  function firewallHelp(platform: string, port: number): string {
+    switch (platform) {
+      case "win32":
+        return `Windows asked for access the first time the host started — choose “Allow access” on <em>Private networks</em>. If that prompt was dismissed, open Windows Security → Firewall &amp; network protection → Allow an app through the firewall and enable Node.js / The QuackBox on Private.`;
+      case "darwin":
+        return `macOS asks whether to allow incoming connections — click Allow. If it was denied, open System Settings → Network → Firewall → Options and allow the app.`;
+      case "linux":
+        return `Allow the hub port through the local firewall, for example <code>ufw allow ${port}</code>.`;
+      default:
+        return `Allow incoming connections for this app on private networks.`;
+    }
   }
 
   function interfacePicker(current: LauncherState): string {
@@ -260,22 +305,36 @@ function run(api: QuackboxApi): void {
 
   function stageView(current: LauncherState): string {
     const game = current.games.find((entry) => entry.id === current.selectedGameId);
+    const title = game?.name ?? "Cartridge";
     return `
       <div class="stage">
         <header class="top">
           <div class="brand">
-            <h1>${escapeHtml(game?.name ?? "Cartridge")}</h1>
+            <h1>${escapeHtml(title)}</h1>
             <p class="muted small" id="stage-players">${connectedCount(current)} connected</p>
           </div>
-          <button id="back" class="ghost">Back to lobby</button>
+          <button class="ghost" data-back="1">Back to lobby</button>
         </header>
-        <iframe
-          id="game"
-          class="game-frame"
-          title="${escapeHtml(game?.name ?? "Cartridge")}"
-          src="${escapeHtml(current.gameUrl ?? "")}"
-          sandbox="allow-scripts"
-        ></iframe>
+        <div class="stage-body">
+          <iframe
+            id="game"
+            class="game-frame"
+            title="${escapeHtml(title)}"
+            src="${escapeHtml(current.gameUrl ?? "")}"
+            sandbox="allow-scripts"
+          ></iframe>
+          <div id="game-crash" class="crash" hidden>
+            <div class="crash-card">
+              <p class="eyebrow">Cartridge stopped</p>
+              <h2 id="crash-title"></h2>
+              <p id="crash-detail" class="muted small"></p>
+              <div class="crash-actions">
+                <button id="reload" class="ghost">Reload cartridge</button>
+                <button class="ghost" data-back="1">Back to lobby</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <p class="hint">The cartridge talks to the hub only through the QuackBox SDK bridge.</p>
       </div>
     `;
@@ -284,6 +343,60 @@ function run(api: QuackboxApi): void {
   function updateStageMeta(current: LauncherState): void {
     const meta = app.querySelector<HTMLElement>("#stage-players");
     if (meta) meta.textContent = `${connectedCount(current)} connected`;
+  }
+
+  // --- cartridge crash boundary ---------------------------------------------
+
+  function armReadyTimer(): void {
+    clearReadyTimer();
+    readyTimer = window.setTimeout(() => {
+      readyTimer = null;
+      showCrash(
+        "This cartridge did not start",
+        `It did not answer within ${READY_TIMEOUT_MS / 1000} seconds. It may have crashed while loading.`,
+      );
+    }, READY_TIMEOUT_MS);
+  }
+
+  function clearReadyTimer(): void {
+    if (readyTimer === null) return;
+    window.clearTimeout(readyTimer);
+    readyTimer = null;
+  }
+
+  function crashDetail(payload: Record<string, unknown>): string {
+    const message = typeof payload.message === "string" ? payload.message : "Unknown error.";
+    const stack = typeof payload.stack === "string" ? payload.stack.split("\n")[0] ?? "" : "";
+    const detail = stack && !message.includes(stack) ? `${message} (${stack})` : message;
+    return detail.slice(0, 400);
+  }
+
+  function showCrash(title: string, detail: string): void {
+    if (!frame || crashVisible) return;
+    crashVisible = true;
+    clearReadyTimer();
+    console.warn(`[stage] ${title}: ${detail}`);
+
+    const panel = app.querySelector<HTMLElement>("#game-crash");
+    if (!panel) return;
+    const heading = panel.querySelector<HTMLElement>("#crash-title");
+    const text = panel.querySelector<HTMLElement>("#crash-detail");
+    if (heading) heading.textContent = title;
+    if (text) text.textContent = detail;
+    panel.hidden = false;
+  }
+
+  function reloadStage(): void {
+    const url = state?.gameUrl;
+    if (!frame || !url) return;
+
+    const panel = app.querySelector<HTMLElement>("#game-crash");
+    if (panel) panel.hidden = true;
+    crashVisible = false;
+    armReadyTimer();
+    // Assigning src to the same URL re-navigates the frame, which is exactly
+    // the fresh start a crashed cartridge needs.
+    frame.src = url;
   }
 
   function bind(): void {
@@ -296,13 +409,16 @@ function run(api: QuackboxApi): void {
       void api.refreshGames();
     });
 
-    app.querySelector<HTMLButtonElement>("#back")?.addEventListener("click", () => {
-      void api.selectGame(null);
-    });
+    app.querySelector<HTMLButtonElement>("#reload")?.addEventListener("click", reloadStage);
 
     app.onclick = (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
+
+      if (target.closest("[data-back]")) {
+        void api.selectGame(null);
+        return;
+      }
 
       const cart = target.closest<HTMLElement>("[data-game]");
       if (cart?.dataset.game) {

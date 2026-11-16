@@ -2,6 +2,9 @@ import type { Player, UITarget } from "@quackbox/protocol";
 import { listenToHost, postToHost } from "./bridge.js";
 import type { GameCartridge, HubContext, SetUITarget } from "./types.js";
 
+/** A cartridge that throws on every input must not flood the host with reports. */
+const MAX_ERROR_REPORTS = 20;
+
 /** A bare string is either "all" or a player id; the wire format is explicit. */
 function toWireTarget(target: SetUITarget): UITarget {
   if (target === "all") return "all";
@@ -21,6 +24,42 @@ export function defineGame(cartridge: GameCartridge): void {
   let config: Readonly<Record<string, unknown>> = {};
   let started = false;
   let stopped = false;
+  let errorReports = 0;
+
+  /**
+   * The crash boundary: a cartridge callback that throws is caught here, logged
+   * in the frame's own console, and reported to the launcher so the TV can show
+   * what died instead of a silent black screen.
+   */
+  function reportError(source: string, error: unknown): void {
+    console.error(`[quackbox] ${source}:`, error);
+    if (errorReports >= MAX_ERROR_REPORTS) return;
+    errorReports += 1;
+
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error && error.stack ? error.stack.split("\n")[0] ?? "" : "";
+    postToHost({
+      type: "quackbox:error",
+      source,
+      message: `${source}: ${message}`.slice(0, 400),
+      ...(stack ? { stack: stack.slice(0, 400) } : {}),
+    });
+  }
+
+  function invoke(source: string, run: () => void): void {
+    try {
+      run();
+    } catch (error) {
+      reportError(source, error);
+    }
+  }
+
+  window.addEventListener("error", (event) => {
+    reportError("Uncaught error", event.error ?? event.message);
+  });
+  window.addEventListener("unhandledrejection", (event) => {
+    reportError("Unhandled rejection", event.reason);
+  });
 
   const hub: HubContext = {
     get players() {
@@ -52,8 +91,10 @@ export function defineGame(cartridge: GameCartridge): void {
         for (const player of message.players) players.set(player.id, player);
         config = message.config;
         started = true;
-        void Promise.resolve(cartridge.onStart(hub)).catch((error: unknown) => {
-          hub.log("onStart failed:", error instanceof Error ? error.message : String(error));
+        invoke("onStart", () => {
+          void Promise.resolve(cartridge.onStart(hub)).catch((error: unknown) => {
+            reportError("onStart", error);
+          });
         });
         break;
       }
@@ -63,30 +104,30 @@ export function defineGame(cartridge: GameCartridge): void {
         if (!started) break;
         switch (message.kind) {
           case "join":
-            cartridge.onPlayerJoin?.(message.player);
+            invoke("onPlayerJoin", () => cartridge.onPlayerJoin?.(message.player));
             break;
           case "rejoin":
-            cartridge.onPlayerRejoin?.(message.player);
+            invoke("onPlayerRejoin", () => cartridge.onPlayerRejoin?.(message.player));
             break;
           case "leave":
-            cartridge.onPlayerLeave?.(message.player);
+            invoke("onPlayerLeave", () => cartridge.onPlayerLeave?.(message.player));
             break;
           case "removed":
             players.delete(message.player.id);
-            cartridge.onPlayerRemoved?.(message.player);
+            invoke("onPlayerRemoved", () => cartridge.onPlayerRemoved?.(message.player));
             break;
         }
         break;
       }
 
       case "quackbox:input":
-        if (started) cartridge.onInput(message.player, message.input);
+        if (started) invoke("onInput", () => cartridge.onInput(message.player, message.input));
         break;
 
       case "quackbox:stop":
         if (stopped) break;
         stopped = true;
-        cartridge.onStop?.();
+        invoke("onStop", () => cartridge.onStop?.());
         break;
     }
   });

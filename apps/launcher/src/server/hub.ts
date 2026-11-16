@@ -7,19 +7,31 @@ import {
   type ErrorCode,
   type JoinMessage,
 } from "@quackbox/protocol";
+import { TokenBucket } from "./limits.js";
 import { Room, type PlayerRecord, type RoomHandlers } from "./room.js";
 
 export interface HubOptions {
   roomCode: string;
   graceMs: number;
   maxPayloadBytes: number;
+  /** Sustained inbound messages per second, per socket. */
+  messageRatePerSecond: number;
+  /** Messages a socket may send back-to-back before the sustained rate applies. */
+  messageBurst: number;
   maxPlayers?: number;
   handlers?: RoomHandlers;
 }
 
+/** Dropped messages before a socket is hung up: this is flooding, not jitter. */
+const DROP_LIMIT = 500;
+const RATE_WARN_INTERVAL_MS = 5_000;
+
 interface Client {
   room: Room;
   record: PlayerRecord | null;
+  bucket: TokenBucket;
+  dropped: number;
+  lastRateWarn: number;
 }
 
 /** Owns the rooms and every socket lifetime. Game code never touches a socket. */
@@ -29,6 +41,7 @@ export class Hub {
   private readonly clients = new Map<WebSocket, Client>();
   private readonly maxPayloadBytes: number;
   private disposed = false;
+  private rateLimited = 0;
 
   constructor(private readonly options: HubOptions) {
     this.maxPayloadBytes = options.maxPayloadBytes;
@@ -47,18 +60,36 @@ export class Hub {
     return room;
   }
 
-  get stats(): { rooms: number; sockets: number; players: number; connected: number } {
+  get stats(): {
+    rooms: number;
+    sockets: number;
+    players: number;
+    connected: number;
+    rateLimited: number;
+  } {
     let players = 0;
     let connected = 0;
     for (const room of this.rooms.values()) {
       players += room.slots;
       connected += room.connectedCount;
     }
-    return { rooms: this.rooms.size, sockets: this.clients.size, players, connected };
+    return {
+      rooms: this.rooms.size,
+      sockets: this.clients.size,
+      players,
+      connected,
+      rateLimited: this.rateLimited,
+    };
   }
 
   handleConnection(socket: WebSocket): void {
-    this.clients.set(socket, { room: this.defaultRoom, record: null });
+    this.clients.set(socket, {
+      room: this.defaultRoom,
+      record: null,
+      bucket: new TokenBucket(this.options.messageRatePerSecond, this.options.messageBurst),
+      dropped: 0,
+      lastRateWarn: 0,
+    });
     socket.on("message", (data, isBinary) => this.onMessage(socket, data, isBinary));
     socket.on("close", () => this.onClose(socket));
     socket.on("error", () => {
@@ -79,6 +110,17 @@ export class Hub {
 
   private onMessage(socket: WebSocket, data: RawData, isBinary: boolean): void {
     if (this.disposed) return;
+
+    const client = this.clients.get(socket);
+    if (!client) return;
+
+    // Shape traffic before parsing: a flooding phone must not cost JSON and zod
+    // work, and the limit is per socket, so one phone cannot slow the room down.
+    if (!client.bucket.take()) {
+      this.onRateLimited(socket, client);
+      return;
+    }
+
     if (isBinary) {
       this.reject(socket, "bad-message", "Binary frames are not implemented yet; send JSON.");
       return;
@@ -107,9 +149,6 @@ export class Hub {
       this.reject(socket, "bad-message", describeIssues(parsed.error));
       return;
     }
-
-    const client = this.clients.get(socket);
-    if (!client) return;
 
     const message: ClientMessage = parsed.data;
     if (message.t === "join") {
@@ -162,6 +201,22 @@ export class Hub {
     const client = this.clients.get(socket);
     this.clients.delete(socket);
     if (client?.record) client.room.detach(client.record, socket);
+  }
+
+  private onRateLimited(socket: WebSocket, client: Client): void {
+    client.dropped += 1;
+    this.rateLimited += 1;
+
+    const now = Date.now();
+    if (now - client.lastRateWarn >= RATE_WARN_INTERVAL_MS) {
+      client.lastRateWarn = now;
+      const who = client.record?.player.name ?? "an unjoined socket";
+      console.warn(`[hub] rate limit: dropped ${client.dropped} message(s) from ${who}`);
+    }
+
+    if (client.dropped < DROP_LIMIT) return;
+    this.reject(socket, "rate-limited", "Too many messages. Wait a moment, then reconnect.");
+    socket.close(4008, "rate limited");
   }
 
   private reject(socket: WebSocket, code: ErrorCode, message: string): void {

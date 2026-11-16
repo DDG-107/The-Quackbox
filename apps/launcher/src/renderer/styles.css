@@ -347,12 +347,109 @@ button:disabled {
   padding: 0.8rem 1rem 1rem;
 }
 
+.stage-body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
 .game-frame {
   flex: 1;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: #000;
+}
+
+.crash {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: rgba(11, 11, 18, 0.92);
+}
+
+.crash[hidden] {
+  display: none;
+}
+
+.crash-card {
+  max-width: 34rem;
+  display: grid;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.crash-card h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.crash-card p {
+  margin: 0;
+  word-break: break-word;
+}
+
+.crash-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---- connection help ---- */
+
+.help {
+  width: 100%;
+  text-align: left;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
+}
+
+.help summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.help ol {
+  margin: 0.65rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.help strong {
+  color: var(--text);
+}
+
+.help p {
+  margin: 0.6rem 0 0;
+}
+
+.help code {
+  color: var(--accent);
+  word-break: break-all;
 }
 
 .hint {

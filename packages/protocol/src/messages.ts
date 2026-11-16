@@ -63,6 +63,7 @@ export const errorCodeSchema = z.enum([
   "name-required",
   "room-full",
   "protocol",
+  "rate-limited",
 ]);
 
 export const errorMessageSchema = z.object({
