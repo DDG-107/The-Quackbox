@@ -371,6 +371,12 @@ function registerIpc(gameDir: string, manifest: GameManifest): void {
       console.warn(`[game-shell] rejected a game message: ${parsed.error.message}`);
       return;
     }
+    if (parsed.data.type === "quackbox:quit") {
+      // Closing the window ends the session; the launcher returns to its lobby
+      // and the standalone shell quits, both from the existing closed handler.
+      gameWindow?.close();
+      return;
+    }
     sendMessage(parsed.data);
   });
 

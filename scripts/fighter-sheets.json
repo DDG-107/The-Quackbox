@@ -188,20 +188,128 @@
       "key": "brawler",
       "file": "games/super-smash-trash/private-art/source/brawler.png",
       "tolerance": 26,
-      "mergeGap": 0,
-      "minPixels": 30,
-      "panelTolerance": 48,
-      "trimPanel": true,
-      "expandBox": 4,
-      "remove": [
+      "minPixels": 6,
+      "panelTolerance": 26,
+      "manual": true,
+      "panelColors": [
         [
-          50,
-          120,
-          180,
-          180,
-          255,
-          255
+          84,
+          172,
+          252
+        ],
+        [
+          48,
+          138,
+          214
         ]
+      ],
+      "characters": [
+        {
+          "id": "southpaw",
+          "atlas": "southpaw.png",
+          "clips": {
+            "idle": [
+              [
+                3,
+                1067,
+                14,
+                17
+              ],
+              [
+                21,
+                1067,
+                14,
+                17
+              ]
+            ],
+            "run": [
+              [
+                1,
+                1084,
+                14,
+                15
+              ],
+              [
+                17,
+                1084,
+                14,
+                15
+              ],
+              [
+                33,
+                1084,
+                14,
+                15
+              ],
+              [
+                44,
+                1084,
+                14,
+                15
+              ]
+            ],
+            "jump": [
+              [
+                71,
+                1067,
+                14,
+                17
+              ]
+            ],
+            "fall": [
+              [
+                104,
+                1084,
+                14,
+                15
+              ]
+            ],
+            "attack": [
+              [
+                103,
+                1067,
+                14,
+                17
+              ],
+              [
+                120,
+                1067,
+                14,
+                17
+              ]
+            ],
+            "special": [
+              [
+                55,
+                1067,
+                14,
+                17
+              ],
+              [
+                37,
+                1067,
+                14,
+                17
+              ]
+            ],
+            "hurt": [
+              [
+                121,
+                1084,
+                14,
+                15
+              ]
+            ],
+            "ko": [
+              [
+                17,
+                1099,
+                14,
+                13
+              ]
+            ]
+          }
+        }
       ]
     }
   ]

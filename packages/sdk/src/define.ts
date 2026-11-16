@@ -80,6 +80,9 @@ export function defineGame(cartridge: GameCartridge): void {
     end(results) {
       postToHost({ type: "quackbox:end", results });
     },
+    quit() {
+      postToHost({ type: "quackbox:quit" });
+    },
     log(...args) {
       postToHost({ type: "quackbox:log", args });
     },

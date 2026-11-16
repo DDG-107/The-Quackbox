@@ -42,7 +42,11 @@ installer with `corepack pnpm dist:game`.
 4. **Results** — standings with stocks and KOs, then back to fighter select after
    9 seconds or immediately with **Rematch**.
 
-Players who join mid-match spectate and are dealt in at the next select.
+Players who join mid-match spectate and are dealt in at the next select. A player who
+reconnects with their token keeps the fighter they were already playing.
+
+**Esc** (or the **Quit** button, twice within four seconds) leaves the game from any
+phase — select, countdown, fight or results — and returns to the lobby.
 
 ## The landscape phone gamepad
 
@@ -153,8 +157,10 @@ hazards, no conveyors, no floor underneath. Choose the stage before each fight.
   UI is sent only to human players.
 - `onStart` opens select even with zero players, so phones can join and pick before
   the host starts.
-- Rejoining keeps a fighter and their stocks. Mid-match joiners spectate until the
-  next select.
+- Rejoining keeps a fighter, its stocks and its controls. A dropped phone's fighter is
+  handed to the bot brain for the room's grace period, so it keeps fighting instead of
+  standing still until it is knocked out; the player takes it back on reconnect.
+  Mid-match joiners spectate until the next select.
 - The game window keeps rendering when it loses focus (`backgroundThrottling: false`),
   because a TV host may be using another window while the match runs.
 - Standalone mode uses the same `/game` ticket and SDK transport as a QuackBox launch;

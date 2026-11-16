@@ -311,6 +311,13 @@ footer p {
     0 4px 12px rgba(255, 140, 40, 0.14);
 }
 
+.host-controls button.ghost {
+  border-color: rgba(244, 244, 251, 0.26);
+  background: rgba(18, 18, 28, 0.74);
+  color: #cfcfe2;
+  box-shadow: none;
+}
+
 .host-controls button[hidden] {
   display: none;
 }

@@ -149,7 +149,10 @@ export class Room {
     if (previous && previous !== socket) previous.close(4001, "superseded");
 
     this.clearGrace(record.player.id);
-    const wasConnected = record.player.connected;
+    // A player who comes back with their token is the same player, even when the
+    // old socket is already gone. Reporting that as "join" would make a phone
+    // that dropped mid-match look like a late joiner and bench its fighter.
+    const returning = resumed || record.player.connected;
     record.socket = socket;
     record.lastSeen = Date.now();
     record.player.connected = true;
@@ -166,10 +169,10 @@ export class Room {
     });
     this.broadcastLobby();
 
-    if (wasConnected) this.handlers.onPlayerRejoin?.(record.player);
+    if (returning) this.handlers.onPlayerRejoin?.(record.player);
     else this.handlers.onPlayerJoin?.(record.player);
 
-    this.gameBridge?.player(wasConnected ? "rejoin" : "join", record.player);
+    this.gameBridge?.player(returning ? "rejoin" : "join", record.player);
   }
 
   /** Socket went away: hold the slot for the grace period, then drop it. */

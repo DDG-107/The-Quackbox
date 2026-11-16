@@ -38,6 +38,7 @@ const refs = {
   cpuCount: document.querySelector("#cpu-count"),
   addCpu: document.querySelector("#add-cpu"),
   removeCpu: document.querySelector("#remove-cpu"),
+  quit: document.querySelector("#quit"),
 };
 
 const fighters = new Map();
@@ -299,6 +300,9 @@ function addFighter(player, character) {
     respawn: 0,
     flash: 0,
     online: true,
+    // Set while a human is disconnected: the bot brain keeps the fighter in the
+    // fight during the room's grace period.
+    autopilot: false,
     gone: false,
     lastHitBy: null,
     sinceHit: 0,
@@ -908,7 +912,7 @@ function simulate(dt) {
       continue;
     }
 
-    if (fighter.isCPU && fighter.hitstun <= 0) driveCpu(fighter, dt);
+    if ((fighter.isCPU || fighter.autopilot) && fighter.hitstun <= 0) driveCpu(fighter, dt);
 
     if (fighter.char.passive?.type === "regen" && fighter.sinceHit > 4 && fighter.damage > 0) {
       fighter.damage = Math.max(0, fighter.damage - 4 * dt);
@@ -926,7 +930,7 @@ function simulate(dt) {
     if (fighter.hitstun > 0) {
       fighter.hitstun = Math.max(0, fighter.hitstun - dt);
     } else {
-      const axis = fighter.online ? axes.get(fighter.id) : null;
+      const axis = fighter.online || fighter.autopilot ? axes.get(fighter.id) : null;
       const passive = fighter.char.passive?.type;
       const rush = passive === "rush" ? 1 + Math.min(0.28, (fighter.damage / 300) * 0.28) : 1;
       const slow = fighter.slowTimer > 0 ? 0.55 : 1;
@@ -2617,7 +2621,7 @@ function drawFighter(fighter, now) {
   const character = fighter.char;
   ctx.save();
   ctx.translate(fighter.x, fighter.y);
-  ctx.globalAlpha = fighter.online ? 1 : 0.4;
+  ctx.globalAlpha = fighter.online ? 1 : fighter.autopilot ? 0.68 : 0.4;
   if (fighter.invuln > 0) ctx.globalAlpha *= 0.55 + 0.45 * Math.sin(now / 45);
 
   if (fighter.grounded) {
@@ -3116,6 +3120,54 @@ if (refs.addCpu) refs.addCpu.addEventListener("click", () => setCpuCount(cpuCoun
 if (refs.removeCpu) refs.removeCpu.addEventListener("click", () => setCpuCount(cpuCount - 1));
 if (canvas) canvas.addEventListener("click", chooseStage);
 
+// Leaving mid-match is a two-step press so a stray Esc cannot end a fight, but
+// it is reachable from every phase: select, stage, countdown, fight, results.
+let quitArmedUntil = 0;
+
+function quitGame() {
+  setStatus("Leaving the game…");
+  if (typeof hub?.quit === "function") {
+    hub.quit();
+    return;
+  }
+  window.close();
+}
+
+function requestQuit() {
+  const now = performance.now();
+  if (quitArmedUntil > now) {
+    quitArmedUntil = 0;
+    if (refs.quit) refs.quit.textContent = "Quit";
+    quitGame();
+    return;
+  }
+  quitArmedUntil = now + 4000;
+  if (refs.quit) refs.quit.textContent = "Quit?";
+  setStatus("Press Quit — or Esc — again to leave this game");
+  setTimeout(() => {
+    if (performance.now() >= quitArmedUntil && refs.quit) refs.quit.textContent = "Quit";
+  }, 4100);
+}
+
+if (refs.quit) refs.quit.addEventListener("click", requestQuit);
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  event.preventDefault();
+  requestQuit();
+});
+
+// Coming back mid-match must land on the same fighter, with its stocks and its
+// controls, instead of the late-joiner "spectating" bench.
+function resumeFighter(player) {
+  const fighter = fighters.get(player.id);
+  if (!fighter) return false;
+  fighter.online = true;
+  fighter.autopilot = false;
+  if (!fighter.isCPU) fighter.cpu = null;
+  if (phase === "fight") hub?.setUI(player.id, controlsFor(fighter.char));
+  return true;
+}
+
 defineGame({
   onStart(context) {
     hub = context;
@@ -3135,6 +3187,12 @@ defineGame({
   },
 
   onPlayerJoin(player) {
+    // A token-carrying resume should arrive as "rejoin"; if the hub reports it as
+    // a join anyway, keep the live fighter instead of benching it as a spectator.
+    if (resumeFighter(player)) {
+      hub?.log("trash resumed", `${player.name} kept their fighter`);
+      return;
+    }
     if (phase === "select") {
       hub?.setUI(player.id, rosterUI());
       setHostButtons();
@@ -3152,19 +3210,29 @@ defineGame({
   },
 
   onPlayerRejoin(player) {
-    const fighter = fighters.get(player.id);
-    if (fighter) {
-      fighter.online = true;
-      if (phase === "fight") hub?.setUI(player.id, controlsFor(fighter.char));
-      return;
-    }
+    if (resumeFighter(player)) return;
     if (phase === "select") hub?.setUI(player.id, rosterUI());
     if (phase === "stage") hub?.setUI(player.id, rosterUI());
   },
 
   onPlayerLeave(player) {
     const fighter = fighters.get(player.id);
-    if (fighter) fighter.online = false;
+    if (fighter) {
+      fighter.online = false;
+      const stillFighting = phase === "fight" && !fighter.gone && fighter.stocks > 0;
+      if (stillFighting) {
+        // The room holds the slot for the grace period, so put the fighter on
+        // autopilot: a phone that dropped mid-match should not just stand there
+        // until someone knocks it out.
+        fighter.autopilot = true;
+        fighter.cpu ??= {
+          jumpCd: 0.35 + Math.random() * 0.8,
+          specialCd: 1.5 + Math.random() * 2,
+        };
+        hub?.log("trash autopilot", player.name);
+      }
+      hub?.setUI(player.id, ui.waiting("Reconnecting — your fighter is still in the match"));
+    }
     axes.set(player.id, { x: 0, y: 0 });
     aims.set(player.id, { x: 0, y: 0 });
     setHostButtons();

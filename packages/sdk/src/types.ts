@@ -19,6 +19,8 @@ export interface HubContext {
   broadcast(event: string, data?: unknown): void;
   /** Finish the round: everyone returns to the lobby. */
   end(results: GameResult[]): void;
+  /** Leave immediately, from any phase: the game window closes and the lobby returns. */
+  quit(): void;
   /** Print to the launcher console. */
   log(...args: unknown[]): void;
 }

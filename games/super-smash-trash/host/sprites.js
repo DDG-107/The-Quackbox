@@ -151,5 +151,42 @@ export const FIGHTER_SPRITES = {
         14
       ]
     }
+  },
+  "southpaw": {
+    "atlas": "southpaw.png",
+    "cell": 64,
+    "columns": 8,
+    "clips": {
+      "idle": [
+        0,
+        1
+      ],
+      "run": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "jump": [
+        6
+      ],
+      "fall": [
+        7
+      ],
+      "attack": [
+        8,
+        9
+      ],
+      "special": [
+        10,
+        11
+      ],
+      "hurt": [
+        12
+      ],
+      "ko": [
+        13
+      ]
+    }
   }
 };

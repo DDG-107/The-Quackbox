@@ -35,6 +35,10 @@ export const gameClientMessageSchema = z.discriminatedUnion("type", [
     results: endedMessageSchema.shape.results.max(200),
   }),
   z.object({
+    /** The game is leaving: close its window and give the screen back to the lobby. */
+    type: z.literal("quackbox:quit"),
+  }),
+  z.object({
     type: z.literal("quackbox:log"),
     args: z.array(z.unknown()).max(12),
   }),

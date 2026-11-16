@@ -403,6 +403,7 @@ export const ROSTER = [
     accent: "#ff8a3d",
     shape: "box",
     emblem: "flame",
+    sprite: "southpaw",
     passive: { type: "rush", label: "Second Wind" },
     stats: { speed: 330, jump: 655, weight: 0.95, airJumps: 2, shield: 100 },
     attack: { name: "Left Hook", damage: 9, reach: 62, arc: 48, knockback: 150, cooldown: 0.34 },
