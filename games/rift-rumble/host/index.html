@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Rift Rumble</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">A platform fighter from every universe</p>
+          <h1>Rift Rumble</h1>
+        </div>
+        <div class="match">
+          <span class="muted small">Stocks 3 · 90s</span>
+          <div class="clock"><span id="clock">90</span><span class="unit">s</span></div>
+        </div>
+      </header>
+
+      <section class="screen">
+        <canvas id="stage" width="960" height="540"></canvas>
+      </section>
+
+      <footer>
+        <p id="status">Waiting for fighters…</p>
+        <div class="host-controls">
+          <button id="start" type="button">Start match</button>
+          <button id="rematch" type="button" hidden>Rematch</button>
+        </div>
+        <p class="hint">
+          Phones choose a fighter, then move with the joystick and use ATTACK, SP1, SP2,
+          JUMP and GUARD.
+        </p>
+      </footer>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

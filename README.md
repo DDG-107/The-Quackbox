@@ -4,9 +4,9 @@ A LAN party platform. The host app runs the game on the big screen; everyone els
 phone becomes a controller. No internet, no accounts, no installs on the phones.
 
 **Status: Phases 0–6 complete.** The Electron launcher, lobby, QR join flow,
-cartridge loader, the `@quackbox/sdk` bridge, the controller components and four
-starter cartridges (Tap Race, Draw and Vote, Crowd Tug-of-War, Rumble Arena) work.
-`pnpm create-game` starts a new cartridge from `games/_template`. Phase 5 adds
+cartridge loader, the `@quackbox/sdk` bridge, the controller components and five
+starter cartridges (Tap Race, Draw and Vote, Crowd Tug-of-War, Rumble Arena, Rift
+Rumble) work. `pnpm create-game` starts a new cartridge from `games/_template`. Phase 5 adds
 connection troubleshooting screens, a cartridge crash boundary and rate limits;
 Phase 6 adds `electron-builder` installers and GitHub Actions CI/release builds.
 
@@ -47,7 +47,7 @@ corepack pnpm dev:controller   # Vite on :5173, proxies /ws and /health to :4321
 | `pnpm license-check` | Cartridge manifests + `ASSETS.md` guardrail |
 | `pnpm check` | typecheck + lint + license-check |
 | `pnpm create-game my-game` | Copy `games/_template` to `games/my-game` and rename it |
-| `pnpm sim --players 100 --tap 200` | Headless bots: join, tap (or `--draw`), drop and resume slots |
+| `pnpm sim --players 100 --tap 200` | Headless bots: join, tap (`--draw`, `--punch`, `--attack`), pick a fighter, drop and resume slots |
 
 `pnpm` here means `corepack pnpm` unless you have pnpm installed globally.
 
@@ -83,7 +83,7 @@ packages/sdk/                cartridge API, served to games at /sdk/index.js
 packages/create-game/        the `pnpm create-game` scaffolder
 tools/license-check/         CI guardrail for cartridge assets
 apps/launcher/electron-builder.yml  installer targets and packaged resource layout
-games/                       the four starter cartridges, `_template`, see games/README.md
+games/                       the five starter cartridges, `_template`, see games/README.md
 scripts/sim.ts               simulated phones for load and reconnect tests
 ```
 
@@ -150,9 +150,10 @@ the SDK from the hub itself — no build step, no dependency to install:
 - Lifecycle: `onPlayerJoin`, `onPlayerLeave`, `onPlayerRejoin`, `onPlayerRemoved`,
   `onStop`.
 
-The real-time reference is `games/rumble-arena`: a fixed 60Hz canvas brawler for up
-to eight phones. Its README covers sprites, audio, hitstun/knockback and how to reuse
-the loop for sports-style games — and why the phone never receives game state.
+`games/rift-rumble` is the full platform fighter: 20 original fighters, phone-side
+character select, stocks, shields, specials, three stages and match results. It is the
+best reference for a complete cartridge. `games/rumble-arena` is the smaller real-time
+loop if you want one screen and one rule set.
 
 Controller components available today: `buttons`, `text`, `choice`, `joystick`,
 `drawpad`, `waiting`, `label`. `/games/` and `/sdk/` are served with
@@ -179,8 +180,10 @@ Configuration lives in `apps/launcher/src/server/config.ts` and can be overridde
   cartridge crash boundary and load timeout, per-socket and bridge rate limits
 - ✅ **Phase 6** — `electron-builder` installers for Windows/macOS/Linux, packaged
   `resources/quackbox` assets, GitHub Actions check and release matrix
-- **Next** — bigger cartridges: `rumble-arena` is the real-time reference; sprites,
-  audio and sports-style games build on the same fixed-step loop
+- ✅ **Rift Rumble** — a full 20-fighter platform fighter with phone character
+  select, stocks, shields, specials, three stages and results, all original IP
+- **Next** — assets and audio for the bigger cartridges, plus sports-style games on
+  the same fixed-step loop
 
 ## License
 

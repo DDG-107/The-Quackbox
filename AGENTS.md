@@ -12,12 +12,13 @@ Tech: TypeScript everywhere, pnpm workspaces, Fastify + `ws` for the LAN server,
 vanilla TS for the controller, zod for every wire boundary.
 
 Current state: Phases 0–6 are done. The launcher, lobby, QR flow, cartridge
-discovery/loader, the `@quackbox/sdk` bridge, the controller components, four starter
-cartridges (`tap-race`, `draw-and-vote`, `tug-of-war`, `rumble-arena`) and the
-`create-game` scaffolder work. Phase 5 adds connection troubleshooting screens, a
+discovery/loader, the `@quackbox/sdk` bridge, the controller components, five starter
+cartridges (`tap-race`, `draw-and-vote`, `tug-of-war`, `rumble-arena`, `rift-rumble`)
+and the `create-game` scaffolder work. Phase 5 adds connection troubleshooting screens, a
 cartridge crash boundary and rate limits. Phase 6 adds `electron-builder` installers
 (packaged assets in `resources/quackbox/`) and the GitHub Actions check/release
-workflows. Next: bigger real-time cartridges; `rumble-arena` is the reference.
+workflows. Rift Rumble is the full platform fighter and the reference for a complete
+cartridge; `rumble-arena` is the smaller real-time loop. Next: assets and audio.
 
 ## Commands
 
@@ -36,6 +37,7 @@ corepack pnpm dist:dir         # unpacked build for a smoke test
 corepack pnpm create-game my-game          # new cartridge from games/_template
 corepack pnpm sim --players 20 --drop 3    # headless bots + reconnect test
 corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
+corepack pnpm sim --players 8 --pick 800 --move 80 --attack 320 --special 900  # rift-rumble match
 ```
 
 `pnpm` may not be on PATH; `corepack pnpm` always works.
@@ -61,7 +63,7 @@ corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
   served at `/sdk/index.js`. This is the only channel a cartridge has to the hub.
 - `packages/create-game/` — the scaffolder behind `pnpm create-game`; copies
   `games/_template` and rewrites the id and name.
-- `games/` — four starter cartridges plus `_template` (folders starting with `_` are
+- `games/` — five starter cartridges plus `_template` (folders starting with `_` are
   skipped by discovery and `license-check`).
 - `tools/license-check/` — cartridge manifest + asset license guardrail.
 
@@ -111,4 +113,4 @@ corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30   # load test
 
 Phase 2 Electron shell + lobby + cartridge discovery → Phase 3 SDK and controller
 components → Phase 4 starter games and load tests (done) → Phase 5 hardening (done) →
-Phase 6 packaging and CI (done) → bigger cartridges (`rumble-arena` is the reference).
+Phase 6 packaging and CI (done) → bigger cartridges (Rift Rumble and Rumble Arena).

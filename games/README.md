@@ -25,6 +25,7 @@ by `license-check`.
 | `draw-and-vote` | drawpad, gallery, choice voting, `hub.end(results)` |
 | `tug-of-war` | crowd-as-one-actor input, teams, a shared rope |
 | `rumble-arena` | real-time canvas brawler: fixed 60Hz loop, joystick + buttons, 2–8 players |
+| `rift-rumble` | full platform fighter: 20-fighter phone select, stocks, shields, specials, stages |
 | `_template` | the smallest working cartridge; copied by `pnpm create-game` |
 
 ## Using the SDK

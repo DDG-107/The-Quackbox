@@ -16,10 +16,10 @@ to get wrong.
 - Never call `pnpm license-check` optional: cartridges need a `manifest.json` and an
   `ASSETS.md` listing `- path | license | source URL` for every asset.
 - Current state: Phases 0–6. Launcher, lobby, QR, cartridge loader, SDK bridge,
-  controller components, four starter cartridges, the `create-game` scaffolder, the
-  Phase 5 hardening and the Phase 6 installer/CI setup exist. Next: bigger real-time
-  cartridges; `games/rumble-arena` is the reference (fixed 60Hz loop, canvas, no game
-  state on phones).
+  controller components, five starter cartridges, the `create-game` scaffolder, the
+  Phase 5 hardening and the Phase 6 installer/CI setup exist. `games/rift-rumble` is
+  the full platform fighter reference (phone character select + fixed 60Hz fight);
+  `games/rumble-arena` is the smaller real-time loop. Next: assets and audio.
 - Packaging: `apps/launcher/electron-builder.yml` copies the controller, SDK and
   `games/` to `resources/quackbox/`; the main process switches paths with
   `app.isPackaged`. Do not add a served asset that only exists in the dev tree.

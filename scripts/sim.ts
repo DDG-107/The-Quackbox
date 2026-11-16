@@ -9,6 +9,7 @@ import { PROTOCOL_VERSION, serverMessageSchema } from "@quackbox/protocol";
  *   corepack pnpm sim --players 100 --drop 0 --tap 200 --seconds 30
  *   corepack pnpm sim --players 4 --drop 0 --draw 250 --seconds 40
  *   corepack pnpm sim --players 4 --drop 0 --move 60 --punch 400 --seconds 20
+ *   corepack pnpm sim --players 4 --drop 0 --pick 700 --move 70 --attack 300 --seconds 45
  */
 const { values } = parseArgs({
   options: {
@@ -27,6 +28,12 @@ const { values } = parseArgs({
     move: { type: "string", default: "0" },
     /** Send a punch press every N ms (rumble-arena attack). */
     punch: { type: "string", default: "0" },
+    /** Pick a character every N ms during rift-rumble select (random fallback). */
+    pick: { type: "string", default: "0" },
+    /** Send an attack press every N ms (rift-rumble). */
+    attack: { type: "string", default: "0" },
+    /** Send special1 every N ms (rift-rumble). */
+    special: { type: "string", default: "0" },
   },
 });
 
@@ -37,6 +44,9 @@ const drawMs = Number.parseInt(values.draw, 10);
 const pullMs = Number.parseInt(values.pull, 10);
 const moveMs = Number.parseInt(values.move, 10);
 const punchMs = Number.parseInt(values.punch, 10);
+const pickMs = Number.parseInt(values.pick, 10);
+const attackMs = Number.parseInt(values.attack, 10);
+const specialMs = Number.parseInt(values.special, 10);
 const dropCount = Math.min(Number.parseInt(values.drop, 10), playerCount);
 const url = values.url;
 const room = values.room?.toUpperCase();
@@ -190,12 +200,40 @@ async function main(): Promise<void> {
     }, punchMs);
   }
 
+  let pickHandle: NodeJS.Timeout | null = null;
+  if (pickMs > 0) {
+    console.log(`[sim] picking a fighter every ${pickMs}ms from ${clients.length} client(s)`);
+    pickHandle = setInterval(() => {
+      // "auto" is not a roster id; the cartridge deals a random fighter for it.
+      for (const client of clients) client.send({ t: "in", id: "roster", k: "choice", v: ["auto"] });
+    }, pickMs);
+  }
+
+  let attackHandle: NodeJS.Timeout | null = null;
+  if (attackMs > 0) {
+    console.log(`[sim] attacking every ${attackMs}ms from ${clients.length} client(s)`);
+    attackHandle = setInterval(() => {
+      for (const client of clients) client.send({ t: "in", id: "attack", k: "press" });
+    }, attackMs);
+  }
+
+  let specialHandle: NodeJS.Timeout | null = null;
+  if (specialMs > 0) {
+    console.log(`[sim] using special1 every ${specialMs}ms from ${clients.length} client(s)`);
+    specialHandle = setInterval(() => {
+      for (const client of clients) client.send({ t: "in", id: "special1", k: "press" });
+    }, specialMs);
+  }
+
   await sleep(holdMs);
   if (tapHandle) clearInterval(tapHandle);
   if (drawHandle) clearInterval(drawHandle);
   if (pullHandle) clearInterval(pullHandle);
   if (moveHandle) clearInterval(moveHandle);
   if (punchHandle) clearInterval(punchHandle);
+  if (pickHandle) clearInterval(pickHandle);
+  if (attackHandle) clearInterval(attackHandle);
+  if (specialHandle) clearInterval(specialHandle);
 
   const health = await fetch(httpHealthUrl()).then((response) => response.json());
   console.log(`[sim] hub health: ${JSON.stringify(health)}`);
